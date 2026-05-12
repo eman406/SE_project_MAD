@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'info.dart';
 import 'products.dart';
+import 'calculator.dart'; // Added import
 
 const Color primaryBlue = Color(0xFF0F4C81);
 const Color solarYellow = Color(0xFFFFC107);
@@ -30,8 +31,10 @@ class _CategoriesDashboardState extends State<CategoriesDashboard> {
     }
 
     if (index == 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Calculator Page")),
+      // Navigating to SolarCalculatorPage
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SolarCalculatorPage()),
       );
     }
 
@@ -65,8 +68,10 @@ class _CategoriesDashboardState extends State<CategoriesDashboard> {
     }
 
     if (type == "calculator") {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Calculator Page")),
+      // Navigating to SolarCalculatorPage
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SolarCalculatorPage()),
       );
     }
   }

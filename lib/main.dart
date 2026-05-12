@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'splash.dart';
 import 'Admin.dart';
 import 'AdminProducts.dart';
+import 'calculator.dart'; // Added import for Calculator
 
 void main() {
   runApp(const SmartEngineeringApp());
@@ -25,6 +26,7 @@ class SmartEngineeringApp extends StatelessWidget {
         '/admin_login': (context) => const LoginPage(),
         '/admin_dashboard': (context) => const AdminDashboard(),
         '/admin_products': (context) => const AdminProductManagement(),
+        '/calculator': (context) => const SolarCalculatorPage(), // Added route
       },
     );
   }
