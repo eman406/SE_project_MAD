@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'categories.dart';
 import 'products.dart';
+import 'calculator.dart';
 
 const Color primaryBlue = Color(0xFF1E3A5F);
 const Color softGrey = Color(0xFF64748B);
@@ -37,9 +38,10 @@ class _SolarInfoPageState extends State<SolarInfoPage> {
     }
 
     if (i == 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Calculator Page"),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SolarCalculatorPage(),
         ),
       );
     }

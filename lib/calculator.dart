@@ -52,6 +52,120 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
     });
   }
 
+  void _showQuotationDialog() {
+    if (_totalWatts == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please add at least one appliance to generate a quote."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    // Hardcoded pricing logic for the quotation
+    // Standard rate in PKR (example: 125k per kW)
+    double pricePerKW = 125000;
+    double totalCost = _recommendedKW * pricePerKW;
+    int panelCount = (_recommendedKW * 1000 / 540).ceil();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          title: const Column(
+            children: [
+              Icon(Icons.receipt_long_rounded, color: primaryBlue, size: 50),
+              SizedBox(height: 12),
+              Text(
+                "System Quotation",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: darkGray),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: [
+                _buildQuoteRow("Total Load:", "${_totalWatts.toStringAsFixed(0)} W"),
+                _buildQuoteRow("System Capacity:", "${_recommendedKW.toStringAsFixed(2)} kW"),
+                _buildQuoteRow("Solar Panels:", "$panelCount x 540W Mono Perc"),
+                _buildQuoteRow("Inverter:", _recommendedKW > 5 ? "Hybrid 3-Phase Smart" : "Hybrid Single-Phase"),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(thickness: 1),
+                ),
+                const Text(
+                  "INCLUDES:",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
+                ),
+                const Text("• Tier-1 A-Grade Panels\n• Smart Wifi Monitoring\n• Mounting Structure & Wiring\n• Complete Installation"),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(thickness: 1),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Estimated Total:",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    Text(
+                      "Rs. ${(totalCost / 1000).toStringAsFixed(0)}k",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        color: successGreen,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  "* Market rates may vary. Prices are inclusive of all taxes.",
+                  style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Quote saved successfully!"), backgroundColor: successGreen),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text("SAVE QUOTE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildQuoteRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: darkGray)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -251,9 +365,7 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () {
-                  // Action for quote or saving result
-                },
+                onPressed: _showQuotationDialog,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: successGreen,
                   foregroundColor: Colors.white,
