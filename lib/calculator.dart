@@ -18,6 +18,7 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
   final Map<String, Map<String, dynamic>> _appliances = {
     'AC (1.5 Ton)': {'watts': 1800, 'count': 0, 'icon': Icons.ac_unit},
     'Refrigerator': {'watts': 300, 'count': 0, 'icon': Icons.kitchen},
+    'Water Motor / Pump': {'watts': 750, 'count': 0, 'icon': Icons.water_drop},
     'Ceiling Fan': {'watts': 75, 'count': 0, 'icon': Icons.air},
     'LED Bulb': {'watts': 12, 'count': 0, 'icon': Icons.lightbulb_outline},
     'Washing Machine': {'watts': 500, 'count': 0, 'icon': Icons.local_laundry_service},
