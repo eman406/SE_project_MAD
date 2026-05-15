@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'categories.dart';
 import 'info.dart';
 import 'calculator.dart';
@@ -19,57 +20,7 @@ class SolarShopPage extends StatefulWidget {
 class _SolarShopPageState extends State<SolarShopPage> {
   int index = 3;
   String search = "";
-
-  final List<Map> products = [
-    {
-      "name": "Monocrystalline Solar Panel",
-      "price": "Rs 25,000",
-      "icon": Icons.solar_power
-    },
-    {
-      "name": "Polycrystalline Solar Panel",
-      "price": "Rs 20,000",
-      "icon": Icons.wb_sunny
-    },
-    {
-      "name": "Hybrid Solar Panel Set",
-      "price": "Rs 45,000",
-      "icon": Icons.bolt
-    },
-    {"name": "AC Breaker 63A", "price": "Rs 5,000", "icon": Icons.power},
-    {"name": "DC Breaker 63A", "price": "Rs 4,800", "icon": Icons.flash_on},
-    {
-      "name": "SPD Protection Device",
-      "price": "Rs 5,500",
-      "icon": Icons.shield
-    },
-    {"name": "MC4 Connector", "price": "Rs 800", "icon": Icons.cable},
-    {
-      "name": "AC Cable 6mm",
-      "price": "Rs 250/m",
-      "icon": Icons.electrical_services
-    },
-    {
-      "name": "DC Cable 6mm",
-      "price": "Rs 270/m",
-      "icon": Icons.electrical_services
-    },
-    {"name": "Earthing Wire", "price": "Rs 1,200", "icon": Icons.terrain},
-    {"name": "Changeover Switch", "price": "Rs 3,800", "icon": Icons.sync},
-    {
-      "name": "Battery Breaker",
-      "price": "Rs 6,000",
-      "icon": Icons.battery_charging_full
-    },
-  ];
-
-  List<Map> get filtered {
-    if (search.isEmpty) return products;
-    return products
-        .where((p) =>
-        p["name"].toLowerCase().contains(search.toLowerCase()))
-        .toList();
-  }
+  final CollectionReference productsRef = FirebaseFirestore.instance.collection('products');
 
   void _onTap(int i) {
     if (i == index) return;
@@ -116,33 +67,55 @@ class _SolarShopPageState extends State<SolarShopPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bg,
-
       body: SafeArea(
         child: Column(
           children: [
             _header(),
             _searchBar(),
-
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(15),
-                itemCount: filtered.length,
-                gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.78,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemBuilder: (context, i) {
-                  return _card(filtered[i]);
+              child: StreamBuilder<QuerySnapshot>(
+                stream: productsRef.snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return const Center(child: Text("Something went wrong"));
+                  }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final docs = snapshot.data!.docs;
+                  
+                  // Local filtering for search
+                  final filteredDocs = docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final name = (data['name'] ?? "").toString().toLowerCase();
+                    return name.contains(search.toLowerCase());
+                  }).toList();
+
+                  if (filteredDocs.isEmpty) {
+                    return const Center(child: Text("No products found."));
+                  }
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(15),
+                    itemCount: filteredDocs.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.78,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    itemBuilder: (context, i) {
+                      final data = filteredDocs[i].data() as Map<String, dynamic>;
+                      return _card(data);
+                    },
+                  );
                 },
               ),
             ),
           ],
         ),
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: index,
         onTap: _onTap,
@@ -150,16 +123,11 @@ class _SolarShopPageState extends State<SolarShopPage> {
         unselectedItemColor: grey,
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.info), label: "Info"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calculate), label: "Calc"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart), label: "Shop"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person), label: "Profile"),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.info), label: "Info"),
+          BottomNavigationBarItem(icon: Icon(Icons.calculate), label: "Calc"),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Shop"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
     );
@@ -169,28 +137,17 @@ class _SolarShopPageState extends State<SolarShopPage> {
     return const Padding(
       padding: EdgeInsets.all(15),
       child: Row(
-        mainAxisAlignment:
-        MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           CircleAvatar(
             backgroundColor: yellow,
-            child: Icon(
-              Icons.solar_power,
-              color: primaryBlue,
-            ),
+            child: Icon(Icons.solar_power, color: primaryBlue),
           ),
           Text(
             "SOLAR SHOP",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryBlue,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryBlue),
           ),
-          Icon(
-            Icons.shopping_cart,
-            color: grey,
-          ),
+          Icon(Icons.shopping_cart, color: grey),
         ],
       ),
     );
@@ -198,23 +155,18 @@ class _SolarShopPageState extends State<SolarShopPage> {
 
   Widget _searchBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 15),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius:
-          BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: border),
         ),
         child: TextField(
-          onChanged: (v) =>
-              setState(() => search = v),
+          onChanged: (v) => setState(() => search = v),
           decoration: const InputDecoration(
-            icon: Icon(Icons.search,
-                color: grey),
+            icon: Icon(Icons.search, color: grey),
             hintText: "Search products...",
             border: InputBorder.none,
           ),
@@ -235,14 +187,26 @@ class _SolarShopPageState extends State<SolarShopPage> {
     }
   }
 
-  Widget _card(Map item) {
-    Color accent;
+  IconData _getIcon(String iconType) {
+    switch (iconType) {
+      case 'battery': return Icons.battery_charging_full;
+      case 'power': return Icons.power;
+      case 'settings': return Icons.settings_input_component;
+      default: return Icons.solar_power;
+    }
+  }
 
-    if (item["name"].toLowerCase().contains("panel")) {
+  Widget _card(Map data) {
+    final name = data['name'] ?? "Product";
+    final price = data['price'] ?? 0.0;
+    final iconType = data['iconType'] ?? 'solar';
+    
+    Color accent;
+    if (name.toLowerCase().contains("panel")) {
       accent = yellow;
-    } else if (item["name"].toLowerCase().contains("breaker")) {
+    } else if (name.toLowerCase().contains("breaker")) {
       accent = primaryBlue;
-    } else if (item["name"].toLowerCase().contains("cable")) {
+    } else if (name.toLowerCase().contains("cable")) {
       accent = grey;
     } else {
       accent = Colors.green.shade300;
@@ -250,13 +214,9 @@ class _SolarShopPageState extends State<SolarShopPage> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius:
-        BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
-          colors: [
-            Colors.white,
-            accent.withOpacity(0.06),
-          ],
+          colors: [Colors.white, accent.withOpacity(0.06)],
         ),
         boxShadow: [
           BoxShadow(
@@ -273,55 +233,37 @@ class _SolarShopPageState extends State<SolarShopPage> {
             height: 70,
             width: double.infinity,
             decoration: BoxDecoration(
-              borderRadius:
-              const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               gradient: LinearGradient(
-                colors: [
-                  primaryBlue.withOpacity(0.9),
-                  grey.withOpacity(0.6),
-                ],
+                colors: [primaryBlue.withOpacity(0.9), grey.withOpacity(0.6)],
               ),
             ),
             child: Image.network(
-              _img(item["name"]),
+              _img(name),
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  Icon(
-                    item["icon"],
-                    color: Colors.white,
-                    size: 35,
-                  ),
+              errorBuilder: (_, __, ___) => Icon(
+                _getIcon(iconType),
+                color: Colors.white,
+                size: 35,
+              ),
             ),
           ),
-
           Expanded(
             child: Padding(
-              padding:
-              const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(8),
               child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item["name"],
+                    name,
                     maxLines: 2,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight:
-                      FontWeight.bold,
-                      color: primaryBlue,
-                    ),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryBlue),
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    item["price"],
-                    style: const TextStyle(
-                      fontWeight:
-                      FontWeight.bold,
-                      color: grey,
-                    ),
+                    "Rs ${price.toString()}",
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: grey),
                   ),
                   const Spacer(),
                   SizedBox(
@@ -329,39 +271,19 @@ class _SolarShopPageState extends State<SolarShopPage> {
                     height: 30,
                     child: ElevatedButton(
                       onPressed: () {
-                        ScaffoldMessenger.of(
-                            context)
-                            .showSnackBar(
+                        ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                              "${item["name"]} added to cart",
-                            ),
-                            backgroundColor:
-                            primaryBlue,
+                            content: Text("$name added to cart"),
+                            backgroundColor: primaryBlue,
                           ),
                         );
                       },
-                      style: ElevatedButton
-                          .styleFrom(
-                        backgroundColor:
-                        yellow,
-                        foregroundColor:
-                        primaryBlue,
-                        shape:
-                        RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius
-                              .circular(8),
-                        ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: yellow,
+                        foregroundColor: primaryBlue,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: const Text(
-                        "ADD",
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight:
-                          FontWeight.bold,
-                        ),
-                      ),
+                      child: const Text("ADD", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],

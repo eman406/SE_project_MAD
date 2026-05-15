@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'signup.dart';
 import 'categories.dart';
-import 'admin.dart';
+import 'Admin.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,6 +16,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -25,91 +28,61 @@ class _LoginPageState extends State<LoginPage> {
   final Color darkGray = const Color(0xFF1F2937);
   final Color successGreen = const Color(0xFF22C55E);
 
-  // ✅ ADMIN CREDENTIALS ADDED
-  final String adminEmail = "admin@gmail.com";
-  final String adminPassword = "admin123";
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
-      String email = _emailController.text.trim();
-      String password = _passwordController.text.trim();
+    setState(() => _isLoading = true);
 
-      // 🔐 ADMIN AUTHENTICATION (ONLY ADDITION)
-      if (email == adminEmail && password == adminPassword) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const AdminDashboard(),
-          ),
-        );
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: successGreen,
-          content: const Text("Logging in..."),
-        ),
+    try {
+      // 1. Firebase Auth Sign In
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
+
+      // 2. Check Role (Admin vs User/Worker)
+      // First check if it's the admin email we set up
+      if (_emailController.text.trim() == "admin@gmail.com") {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const AdminDashboard()),
+          );
+        }
+      } else {
+        // Otherwise, it's a regular User or Worker
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const CategoriesDashboard()),
+          );
+        }
+      }
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? "Login Failed");
+    } catch (e) {
+      _showError("An unexpected error occurred");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Widget buildFeatureCard(IconData icon, String title) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 15,
-        vertical: 12,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: solarYellow, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              color: softWhite,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
-  InputDecoration inputDecoration(
-      String label,
-      IconData icon,
-      ) {
+  InputDecoration inputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(
-        color: darkGray.withValues(alpha: 0.6),
-      ),
-      prefixIcon: Icon(
-        icon,
-        color: slateGrey,
-      ),
+      labelStyle: TextStyle(color: darkGray.withOpacity(0.6)),
+      prefixIcon: Icon(icon, color: slateGrey),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.9),
+      fillColor: Colors.white.withOpacity(0.9),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(
-          color: solarYellow,
-          width: 2,
-        ),
       ),
     );
   }
@@ -124,64 +97,18 @@ class _LoginPageState extends State<LoginPage> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  primaryBlue,
-                  slateGrey,
-                  softWhite,
-                ],
+                colors: [primaryBlue, slateGrey, softWhite],
               ),
             ),
           ),
-
-          Positioned(
-            top: -80,
-            right: -50,
-            child: Container(
-              height: 220,
-              width: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: solarYellow.withValues(alpha: 0.15),
-              ),
-            ),
-          ),
-
-          Positioned(
-            bottom: -100,
-            left: -60,
-            child: Container(
-              height: 260,
-              width: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: slateGrey.withValues(alpha: 0.1),
-              ),
-            ),
-          ),
-
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(25),
               child: Column(
                 children: [
                   const SizedBox(height: 25),
-
-                  Container(
-                    height: 100,
-                    width: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                    child: Icon(
-                      Icons.solar_power_rounded,
-                      size: 55,
-                      color: solarYellow,
-                    ),
-                  ),
-
+                  Icon(Icons.solar_power_rounded, size: 70, color: solarYellow),
                   const SizedBox(height: 18),
-
                   Text(
                     "SMART ENGINEERING",
                     style: TextStyle(
@@ -191,147 +118,64 @@ class _LoginPageState extends State<LoginPage> {
                       letterSpacing: 1.5,
                     ),
                   ),
-
                   const SizedBox(height: 35),
-
                   ClipRRect(
                     borderRadius: BorderRadius.circular(30),
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(
-                        sigmaX: 15,
-                        sigmaY: 15,
-                      ),
+                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                       child: Container(
                         padding: const EdgeInsets.all(25),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(30),
-                          color: Colors.white.withValues(alpha: 0.4),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
+                          color: Colors.white.withOpacity(0.4),
                         ),
                         child: Form(
                           key: _formKey,
                           child: Column(
                             children: [
-                              const Text(
-                                "Login",
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
+                              const Text("Login", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 25),
-
                               TextFormField(
                                 controller: _emailController,
                                 decoration: inputDecoration("Email", Icons.email_outlined),
-                                validator: (value) {
-                                  if (value == null || !value.contains('@')) {
-                                    return "Enter valid email";
-                                  }
-                                  return null;
-                                },
+                                validator: (v) => (v == null || !v.contains('@')) ? "Enter valid email" : null,
                               ),
-
                               const SizedBox(height: 18),
-
                               TextFormField(
                                 controller: _passwordController,
                                 obscureText: !_isPasswordVisible,
-                                decoration: inputDecoration("Password", Icons.lock_outline)
-                                    .copyWith(
+                                decoration: inputDecoration("Password", Icons.lock_outline).copyWith(
                                   suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _isPasswordVisible
-                                          ? Icons.visibility
-                                          : Icons.visibility_off,
-                                      color: slateGrey,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _isPasswordVisible = !_isPasswordVisible;
-                                      });
-                                    },
+                                    icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                                   ),
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.length < 6) {
-                                    return "Minimum 6 characters";
-                                  }
-                                  return null;
-                                },
+                                validator: (v) => (v == null || v.length < 6) ? "Minimum 6 characters" : null,
                               ),
-
                               const SizedBox(height: 25),
-
                               SizedBox(
                                 width: double.infinity,
                                 height: 55,
                                 child: ElevatedButton(
-                                  onPressed: () {
-                                    _handleLogin();
-
-                                    if (_formKey.currentState!.validate()) {
-                                      if (!(_emailController.text.trim() ==
-                                          adminEmail &&
-                                          _passwordController.text.trim() ==
-                                              adminPassword)) {
-                                        Navigator.pushReplacement(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                            const CategoriesDashboard(),
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
+                                  onPressed: _isLoading ? null : _handleLogin,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: solarYellow,
                                     foregroundColor: darkGray,
-                                    elevation: 8,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                                   ),
-                                  child: const Text(
-                                    "LOGIN",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  child: _isLoading 
+                                    ? const CircularProgressIndicator() 
+                                    : const Text("LOGIN", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                 ),
                               ),
-
                               const SizedBox(height: 15),
-
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    "Don't have an account?",
-                                    style: TextStyle(color: darkGray),
-                                  ),
+                                  const Text("Don't have an account?"),
                                   TextButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                          const SignUpPage(),
-                                        ),
-                                      );
-                                    },
-                                    child: Text(
-                                      "Sign Up",
-                                      style: TextStyle(
-                                        color: primaryBlue,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignUpPage())),
+                                    child: const Text("Sign Up", style: TextStyle(fontWeight: FontWeight.bold)),
                                   ),
                                 ],
                               ),

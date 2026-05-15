@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'splash.dart';
 import 'Admin.dart';
 import 'AdminProducts.dart';
-import 'calculator.dart'; // Added import for Calculator
+import 'calculator.dart';
+import 'firebase_test.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const SmartEngineeringApp());
 }
 
@@ -23,10 +30,11 @@ class SmartEngineeringApp extends StatelessWidget {
       ),
       home: const Splash2(),
       routes: {
-        '/admin_login': (context) => const LoginPage(),
+        '/admin_login': (context) => const AdminLoginPage(),
         '/admin_dashboard': (context) => const AdminDashboard(),
         '/admin_products': (context) => const AdminProductManagement(),
-        '/calculator': (context) => const SolarCalculatorPage(), // Added route
+        '/calculator': (context) => const SolarCalculatorPage(),
+        '/firebase_test': (context) => const FirebaseTestPage(),
       },
     );
   }

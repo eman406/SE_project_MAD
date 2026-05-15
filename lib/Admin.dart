@@ -1,33 +1,70 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'AdminProducts.dart';
+import 'login.dart'; // Import main login page
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class AdminLoginPage extends StatefulWidget {
+  const AdminLoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<AdminLoginPage> createState() => _AdminLoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _AdminLoginPageState extends State<AdminLoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
 
-  // Hardcoded Admin Credentials
-  final String adminEmail = "admin@gmail.com";
-  final String adminPassword = "admin123";
+  Future<void> loginAdmin() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
 
-  void loginAdmin() {
-    if (emailController.text.trim() == adminEmail &&
-        passwordController.text.trim() == adminPassword) {
-      Navigator.pushReplacementNamed(context, '/admin_dashboard');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Invalid Admin Credentials"),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (email.isEmpty || password.isEmpty) {
+      _showError("Please enter email and password");
+      return;
     }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/admin_dashboard');
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = "Login Failed";
+      if (e.code == 'user-not-found') {
+        message = "No user found for that email.";
+      } else if (e.code == 'wrong-password') {
+        message = "Wrong password provided.";
+      } else if (e.code == 'invalid-credential') {
+        message = "Invalid login credentials.";
+      }
+      _showError(message);
+    } catch (e) {
+      _showError("An unexpected error occurred: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -35,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F6),
       body: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Container(
             padding: const EdgeInsets.all(24),
@@ -68,9 +105,9 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 30),
 
-                // Email Field
                 TextField(
                   controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: "Email",
                     prefixIcon: const Icon(Icons.email_outlined),
@@ -82,7 +119,6 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 20),
 
-                // Password Field
                 TextField(
                   controller: passwordController,
                   obscureText: true,
@@ -107,16 +143,23 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    onPressed: loginAdmin,
-                    child: const Text(
-                      "LOGIN",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    onPressed: _isLoading ? null : loginAdmin,
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            "LOGIN",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Go Back"),
                 ),
               ],
             ),
@@ -142,7 +185,8 @@ class AdminDashboard extends StatelessWidget {
         leading: const Padding(
           padding: EdgeInsets.all(8.0),
           child: CircleAvatar(
-            backgroundImage: NetworkImage('https://via.placeholder.com/150'),
+            backgroundColor: Colors.green,
+            child: Icon(Icons.person, color: Colors.white),
           ),
         ),
         title: Column(
@@ -163,12 +207,18 @@ class AdminDashboard extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_none),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.check_circle_outline),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                // Redirect to the main login page (from login.dart)
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                  (route) => false,
+                );
+              }
+            },
+            icon: const Icon(Icons.logout, color: Colors.red),
           ),
         ],
       ),
@@ -200,7 +250,6 @@ class AdminDashboard extends StatelessWidget {
                   iconColor: Colors.orange,
                 ),
                 _buildInstallationCard(),
-                // Navigate to Products when clicking the Sales card
                 GestureDetector(
                   onTap: () {
                     Navigator.pushNamed(context, '/admin_products');
@@ -228,7 +277,6 @@ class AdminDashboard extends StatelessWidget {
           if (index == 3) {
             Navigator.pushNamed(context, '/admin_products');
           }
-          // Add other tab navigation here if needed
         },
         items: const [
           BottomNavigationBarItem(

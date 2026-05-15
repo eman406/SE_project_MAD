@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'info.dart';
 import 'products.dart';
-import 'calculator.dart'; // Added import
+import 'calculator.dart';
+import 'login.dart';
 
 const Color primaryBlue = Color(0xFF0F4C81);
 const Color solarYellow = Color(0xFFFFC107);
@@ -19,6 +22,40 @@ class CategoriesDashboard extends StatefulWidget {
 
 class _CategoriesDashboardState extends State<CategoriesDashboard> {
   int _selectedIndex = 0;
+  String userName = "User";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserName();
+  }
+
+  Future<void> _fetchUserName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data() != null) {
+          setState(() {
+            userName = doc.data()!['name'] ?? "User";
+          });
+        }
+      } catch (e) {
+        debugPrint("Error fetching user name: $e");
+      }
+    }
+  }
+
+  void _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false,
+      );
+    }
+  }
 
   void _openPage(int index) {
     setState(() => _selectedIndex = index);
@@ -31,7 +68,6 @@ class _CategoriesDashboardState extends State<CategoriesDashboard> {
     }
 
     if (index == 2) {
-      // Navigating to SolarCalculatorPage
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const SolarCalculatorPage()),
@@ -68,7 +104,6 @@ class _CategoriesDashboardState extends State<CategoriesDashboard> {
     }
 
     if (type == "calculator") {
-      // Navigating to SolarCalculatorPage
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const SolarCalculatorPage()),
@@ -182,80 +217,40 @@ class _CategoriesDashboardState extends State<CategoriesDashboard> {
   Widget _buildHeader() {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(2.5),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: successGreen, width: 2),
-          ),
-          child: const CircleAvatar(
-            radius: 24,
-            backgroundColor: borderGray,
-            backgroundImage: AssetImage('assets/profile.jpg'),
-          ),
+        const CircleAvatar(
+          radius: 26,
+          backgroundColor: borderGray,
+          child: Icon(Icons.person, color: primaryBlue, size: 30),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      "Welcome back, Sarah",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: darkGray,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Icon(Icons.wb_sunny_outlined, size: 18, color: darkGray),
-                  const SizedBox(width: 4),
-                  const Text(
-                    "Sun",
-                    style: TextStyle(fontSize: 12, color: darkGray),
-                  ),
-                  const SizedBox(width: 10),
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: const [
-                      Icon(Icons.notifications_none, size: 26, color: darkGray),
-                      Positioned(
-                        right: 1,
-                        top: 1,
-                        child: CircleAvatar(
-                          radius: 4,
-                          backgroundColor: Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              Text(
+                "Welcome back,",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: darkGray.withOpacity(0.7),
+                ),
               ),
-              const SizedBox(height: 4),
-              Row(
-                children: const [
-                  Text(
-                    "Solar Energy Status: ",
-                    style: TextStyle(fontSize: 13, color: darkGray),
-                  ),
-                  Text(
-                    "Active",
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: successGreen,
-                    ),
-                  ),
-                  SizedBox(width: 4),
-                  Icon(Icons.check_circle, size: 16, color: successGreen),
-                ],
+              Text(
+                userName,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: darkGray,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
+        ),
+        // Logout Button
+        IconButton(
+          onPressed: _logout,
+          icon: const Icon(Icons.logout, color: Colors.red, size: 28),
+          tooltip: "Logout",
         ),
       ],
     );

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'Admin.dart';
+
 class AdminProductManagement extends StatefulWidget {
   const AdminProductManagement({super.key});
 
@@ -8,54 +10,16 @@ class AdminProductManagement extends StatefulWidget {
 }
 
 class _AdminProductManagementState extends State<AdminProductManagement> {
-  int _selectedIndex = 3; // ✅ Set to Products tab
+  int _selectedIndex = 3;
+  final CollectionReference productsRef = FirebaseFirestore.instance.collection('products');
 
-  // Sample initial product data
-  List<SolarProduct> myProducts = [
-    SolarProduct(
-      name: "MONOCRYSTALLINE",
-      spec: "SOLAR PANEL 400W",
-      price: 299.99,
-      units: 89,
-      status: "Active (Optimal)",
-      icon: Icons.grid_view_rounded,
-    ),
-    SolarProduct(
-      name: "SOLAR HYBRID",
-      spec: "INVERTER 5KW",
-      price: 849.00,
-      units: 25,
-      status: "Active",
-      icon: Icons.power,
-    ),
-    SolarProduct(
-      name: "DEEP CYCLE SOLAR",
-      spec: "BATTERY (12V 200AH)",
-      price: 419.00,
-      units: 15,
-      status: "Low Stock",
-      icon: Icons.battery_charging_full,
-    ),
-    SolarProduct(
-      name: "MPPT CHARGE",
-      spec: "CONTROLLER (60A)",
-      price: 179.99,
-      units: 0,
-      status: "Out of Stock",
-      icon: Icons.settings_input_component,
-    ),
-  ];
-
-  // ✅ Navigation Handler
   void _onItemTapped(int index) {
     if (index == 0) {
-      // Go back to Dashboard
       Navigator.pop(context);
     } else {
       setState(() {
         _selectedIndex = index;
       });
-      // Add navigation for other tabs if needed
     }
   }
 
@@ -63,7 +27,6 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F6),
-      // --- A. The Common Header ---
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -92,11 +55,9 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
           IconButton(onPressed: () {}, icon: const Icon(Icons.check_circle_outline)),
         ],
       ),
-
       body: Column(
         children: [
           const SizedBox(height: 16),
-          // --- B. Product Management Body (Search + List) ---
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -104,7 +65,6 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
               child: Column(
                 children: [
                   const SizedBox(height: 16),
-                  // Product Management Title and search/filter bar
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -127,18 +87,36 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
-                  // The dynamic list of products
+                  
+                  // Firestore StreamBuilder for real-time updates
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: myProducts.length,
-                      itemBuilder: (context, index) {
-                        return _buildProductListItem(myProducts[index], index);
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: productsRef.snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return const Center(child: Text("Something went wrong"));
+                        }
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+
+                        final docs = snapshot.data!.docs;
+                        if (docs.isEmpty) {
+                          return const Center(child: Text("No products found. Add your first one!"));
+                        }
+
+                        return ListView.builder(
+                          itemCount: docs.length,
+                          itemBuilder: (context, index) {
+                            final data = docs[index].data() as Map<String, dynamic>;
+                            final product = SolarProduct.fromMap(data, docs[index].id);
+                            return _buildProductListItem(product, docs[index].id);
+                          },
+                        );
                       },
                     ),
                   ),
 
-                  // --- C. Add Product Button ---
                   _buildAddProductButton(),
                   const SizedBox(height: 20),
                 ],
@@ -147,14 +125,12 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
           ),
         ],
       ),
-
-      // --- D. The Common Bottom Navigation ---
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped, // ✅ Added navigation handler
+        onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Users'),
@@ -166,10 +142,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     );
   }
 
-  // --- E. List Item Widget & Functionality ---
-
-  // Build an individual product tile
-  Widget _buildProductListItem(SolarProduct product, int index) {
+  Widget _buildProductListItem(SolarProduct product, String docId) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -180,11 +153,8 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Icon (Placeholder for panel/battery/controller/inverter)
-          _buildImageIconPlaceholder(product.icon),
+          _buildImageIconPlaceholder(product.getIconData()),
           const SizedBox(width: 12),
-
-          // 2. Product Details (Column 1)
           Expanded(
             flex: 2,
             child: Column(
@@ -215,28 +185,22 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
               ],
             ),
           ),
-
-          // 3. Product Status & Actions (Column 2)
           Expanded(
             flex: 2,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // Status with icon/trend
                 _buildStatusRow(product),
                 const SizedBox(height: 12),
-                // Action Buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     _buildActionButton("UPDATE PRICE", Colors.green, Colors.teal, () {
-                      _showSnackBar("Update Price: Coming Soon");
+                      _showUpdatePriceDialog(docId, product.price);
                     }),
                     const SizedBox(width: 6),
                     _buildActionButton("DELETE", Colors.red, Colors.redAccent, () {
-                      setState(() {
-                        myProducts.removeAt(index);
-                      });
+                      productsRef.doc(docId).delete();
                       _showSnackBar("${product.spec} Removed");
                     }),
                   ],
@@ -249,9 +213,35 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     );
   }
 
-  // --- H. Form & ADD Functionality ---
+  void _showUpdatePriceDialog(String docId, double currentPrice) {
+    final TextEditingController controller = TextEditingController(text: currentPrice.toString());
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Update Price"),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: "New Price"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              double? newPrice = double.tryParse(controller.text);
+              if (newPrice != null) {
+                productsRef.doc(docId).update({'price': newPrice});
+                Navigator.pop(context);
+                _showSnackBar("Price Updated");
+              }
+            },
+            child: const Text("Update"),
+          ),
+        ],
+      ),
+    );
+  }
 
-  // Shows a popup form to add a new product
   void _showAddProductForm() {
     String pName = '';
     String pSpec = '';
@@ -298,17 +288,14 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                   ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
                       onPressed: () {
-                        setState(() {
-                          myProducts.insert(
-                              0,
-                              SolarProduct(
-                                name: pName.toUpperCase(),
-                                spec: pSpec.toUpperCase(),
-                                price: double.tryParse(pPrice) ?? 0.0,
-                                units: int.tryParse(pUnits) ?? 0,
-                                status: "Active (Optimal)",
-                                icon: Icons.solar_power,
-                              ));
+                        productsRef.add({
+                          'name': pName.toUpperCase(),
+                          'spec': pSpec.toUpperCase(),
+                          'price': double.tryParse(pPrice) ?? 0.0,
+                          'units': int.tryParse(pUnits) ?? 0,
+                          'status': (int.tryParse(pUnits) ?? 0) > 0 ? "Active" : "Out of Stock",
+                          'iconType': 'solar', // default icon type
+                          'createdAt': FieldValue.serverTimestamp(),
                         });
                         _showSnackBar("New Product Added Successfully!");
                         Navigator.pop(context);
@@ -325,14 +312,10 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     );
   }
 
-  // Helper function to show a snackbar
   void _showSnackBar(String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
-  // --- I. Minor Helper UI Builders ---
-
-  // Placeholder for product image icon
   Widget _buildImageIconPlaceholder(IconData icon) {
     return Container(
       width: 50,
@@ -343,7 +326,6 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     );
   }
 
-  // Builds the complex status row
   Widget _buildStatusRow(SolarProduct product) {
     final statusMap = {
       'Active (Optimal)': {'icon': Icons.trending_up, 'color': Colors.green},
@@ -352,9 +334,9 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
       'Out of Stock': {'icon': Icons.cancel, 'color': Colors.grey},
     };
 
-    final sInfo = statusMap[product.status];
-    final color = sInfo?['color'] as Color?;
-    final iconData = sInfo?['icon'] as IconData?;
+    final sInfo = statusMap[product.status] ?? statusMap['Active'];
+    final color = sInfo!['color'] as Color?;
+    final iconData = sInfo['icon'] as IconData?;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -378,7 +360,6 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     );
   }
 
-  // Builds an action button
   Widget _buildActionButton(String label, Color startColor, Color endColor, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
@@ -396,7 +377,6 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     );
   }
 
-  // Search input bar
   Widget _buildSearchBar() {
     return Container(
       height: 40,
@@ -409,16 +389,21 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
           const SizedBox(width: 12),
           Icon(Icons.search, color: Colors.grey[400], size: 20),
           const SizedBox(width: 8),
-          Text(
-            "Search for solar products...",
-            style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+          Expanded(
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: "Search for solar products...",
+                hintStyle: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                border: InputBorder.none,
+                isDense: true,
+              ),
+            ),
           )
         ],
       ),
     );
   }
 
-  // Filter button
   Widget _buildFilterButton() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -439,7 +424,6 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     );
   }
 
-  // The large bottom 'ADD NEW PRODUCT' button
   Widget _buildAddProductButton() {
     return InkWell(
       onTap: _showAddProductForm,
@@ -457,7 +441,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
           children: [
             Icon(Icons.add_to_photos_outlined, size: 20),
             SizedBox(width: 10),
-            Text(
+            const Text(
               "ADD NEW PRODUCT",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
@@ -468,21 +452,43 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
   }
 }
 
-// --- Product Data Model ---
 class SolarProduct {
+  final String id;
   final String name;
   final String spec;
   final double price;
   final int units;
   final String status;
-  final IconData icon;
+  final String iconType;
 
   SolarProduct({
+    required this.id,
     required this.name,
     required this.spec,
     required this.price,
     required this.units,
     required this.status,
-    required this.icon,
+    required this.iconType,
   });
+
+  factory SolarProduct.fromMap(Map<String, dynamic> data, String id) {
+    return SolarProduct(
+      id: id,
+      name: data['name'] ?? '',
+      spec: data['spec'] ?? '',
+      price: (data['price'] ?? 0.0).toDouble(),
+      units: data['units'] ?? 0,
+      status: data['status'] ?? 'Active',
+      iconType: data['iconType'] ?? 'solar',
+    );
+  }
+
+  IconData getIconData() {
+    switch (iconType) {
+      case 'battery': return Icons.battery_charging_full;
+      case 'power': return Icons.power;
+      case 'settings': return Icons.settings_input_component;
+      default: return Icons.solar_power;
+    }
+  }
 }
