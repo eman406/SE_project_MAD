@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'signup.dart';
-import 'categories.dart';
-import 'Admin.dart';
+import 'User/categories.dart';
+import 'Admin/Admin.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

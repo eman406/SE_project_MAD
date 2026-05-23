@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'AdminProducts.dart';
-import 'login.dart'; // Import main login page
+import '../login.dart'; // Import main login page
+import 'AdminUsers.dart'; // Import User Management
+import 'AdminProducts.dart'; // Import Product Management
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({super.key});
@@ -81,7 +82,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -200,7 +201,7 @@ class AdminDashboard extends StatelessWidget {
               ),
             ),
             Text(
-              "Solar Energy Platform Overview",
+              "Solar Energy Overview",
               style: TextStyle(fontSize: 14, color: Colors.grey[700]),
             ),
           ],
@@ -210,7 +211,6 @@ class AdminDashboard extends StatelessWidget {
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
-                // Redirect to the main login page (from login.dart)
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -234,27 +234,33 @@ class AdminDashboard extends StatelessWidget {
               mainAxisSpacing: 16,
               childAspectRatio: 0.85,
               children: [
+                // LINKED: Total Users Card
                 _buildMetricCard(
                   title: "TOTAL USERS",
                   icon: Icons.group,
-                  value: "15,782",
-                  subValue: "Generating... (Optimal)",
+                  value: "Manage",
+                  subValue: "View/Ban/Delete Users",
                   iconColor: Colors.green,
                   trendIcon: Icons.trending_up,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AdminUsersScreen()),
+                  ),
                 ),
                 _buildMetricCard(
                   title: "TOTAL WORKERS",
                   icon: Icons.engineering,
                   value: "312",
-                  subValue: "Active Workers (Online)",
+                  subValue: "Active Online",
                   iconColor: Colors.orange,
+                  onTap: () {}, // Future Implementation
                 ),
                 _buildInstallationCard(),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, '/admin_products');
-                  },
-                  child: _buildSalesCard(),
+                _buildSalesCard(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AdminProductManagement()),
+                  ),
                 ),
               ],
             ),
@@ -274,8 +280,17 @@ class AdminDashboard extends StatelessWidget {
         unselectedItemColor: Colors.grey,
         currentIndex: 0,
         onTap: (index) {
-          if (index == 3) {
-            Navigator.pushNamed(context, '/admin_products');
+          if (index == 1) {
+            // LINKED: Bottom Bar Users Item
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminUsersScreen()),
+            );
+          } else if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminProductManagement()),
+            );
           }
         },
         items: const [
@@ -310,42 +325,47 @@ class AdminDashboard extends StatelessWidget {
     required String value,
     required String subValue,
     required Color iconColor,
+    required VoidCallback onTap,
     IconData? trendIcon,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: _cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-          ),
-          const Spacer(),
-          Center(child: Icon(icon, size: 40, color: iconColor)),
-          const Spacer(),
-          Row(
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: _cardDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
               ),
-              if (trendIcon != null)
-                Icon(trendIcon, color: Colors.green, size: 18),
-            ],
-          ),
-          Text(
-            subValue,
-            style: const TextStyle(fontSize: 10, color: Colors.black54),
-          ),
-        ],
+            ),
+            const Spacer(),
+            Center(child: Icon(icon, size: 40, color: iconColor)),
+            const Spacer(),
+            Row(
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (trendIcon != null)
+                  Icon(trendIcon, color: Colors.green, size: 18),
+              ],
+            ),
+            Text(
+              subValue,
+              style: const TextStyle(fontSize: 10, color: Colors.black54),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -393,34 +413,39 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildSalesCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: _cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "TOTAL PRODUCT SALES",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-          ),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Icon(Icons.calculate, color: Colors.green, size: 30),
-              Icon(Icons.shopping_cart, color: Colors.green, size: 30),
-            ],
-          ),
-          const Divider(),
-          _productRow("Solar Panels", "\$299.99", "Delivered - Jan 15"),
-          const SizedBox(height: 4),
-          _productRow("Hybrid Inverter", "\$849.00", "Shipped - Feb 12"),
-        ],
+  Widget _buildSalesCard({required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: _cardDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "PRODUCT SALES",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+            ),
+            const SizedBox(height: 4),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Icon(Icons.calculate, color: Colors.green, size: 24),
+                Icon(Icons.shopping_cart, color: Colors.green, size: 24),
+              ],
+            ),
+            const Divider(),
+            _productRow("Panels", r"$299.99"),
+            const SizedBox(height: 4),
+            _productRow("Inverter", r"$849.00"),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _productRow(String name, String price, String status) {
+  Widget _productRow(String name, String price) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -436,10 +461,6 @@ class AdminDashboard extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        Text(
-          status,
-          style: const TextStyle(fontSize: 8, color: Colors.grey),
-        ),
       ],
     );
   }
@@ -448,8 +469,6 @@ class AdminDashboard extends StatelessWidget {
     required IconData icon,
     required Color iconColor,
     required String title,
-    String? trailingText,
-    Color? trailingColor,
     bool isBold = false,
   }) {
     return Container(
@@ -462,18 +481,9 @@ class AdminDashboard extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              fontWeight:
-              isBold ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             ),
           ),
-          if (trailingText != null)
-            Text(
-              trailingText,
-              style: TextStyle(
-                color: trailingColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
           const Spacer(),
           Container(
             width: 20,
@@ -494,7 +504,7 @@ class AdminDashboard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.05),
+          color: Colors.black.withValues(alpha: 0.05),
           blurRadius: 10,
           offset: const Offset(0, 4),
         ),

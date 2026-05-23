@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'info.dart';
-import 'products.dart';
+import '../User/info.dart';
+import '../products.dart';
 import 'calculator.dart';
-import 'login.dart';
+import '../login.dart';
 
 const Color primaryBlue = Color(0xFF0F4C81);
 const Color solarYellow = Color(0xFFFFC107);

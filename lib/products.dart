@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'categories.dart';
-import 'info.dart';
-import 'calculator.dart';
+import 'User/categories.dart';
+import 'User/info.dart';
+import 'User/calculator.dart';
 
 const Color primaryBlue = Color(0xFF1E3A5F);
 const Color grey = Color(0xFF64748B);

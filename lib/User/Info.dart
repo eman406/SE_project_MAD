@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'categories.dart';
-import 'products.dart';
+import '../products.dart';
 import 'calculator.dart';
 
 const Color primaryBlue = Color(0xFF1E3A5F);
