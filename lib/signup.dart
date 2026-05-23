@@ -61,22 +61,44 @@ class _SignUpPageState extends State<SignUpPage> {
         password: password,
       );
 
-      // 2. Save Additional Info to Firestore
-      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
-        'uid': userCredential.user!.uid,
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'role': _selectedRole,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      String uid = userCredential.user!.uid;
 
-      if (mounted) {
-        _showSnackBar("Registration Successful!", isError: false);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const CategoriesDashboard()),
-        );
+      if (_selectedRole == "Worker") {
+        // 2a. Save to pending_workers if role is Worker
+        await FirebaseFirestore.instance.collection('pending_workers').doc(uid).set({
+          'uid': uid,
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'role': 'Worker',
+          'status': 'pending',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        // Sign out immediately so they can't access the app yet
+        await FirebaseAuth.instance.signOut();
+
+        if (mounted) {
+          _showStatusDialog("Aapki request submit ho chuki hai. Please wait jab tak admin aapko approve nahi karta.");
+        }
+      } else {
+        // 2b. Save to users collection if regular User
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'uid': uid,
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'role': 'User',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          _showSnackBar("Registration Successful!", isError: false);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const CategoriesDashboard()),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       _showSnackBar(e.message ?? "Registration Failed");
@@ -85,6 +107,26 @@ class _SignUpPageState extends State<SignUpPage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showStatusDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("Request Submitted"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Go back to login
+            },
+            child: const Text("OK"),
+          )
+        ],
+      ),
+    );
   }
 
   void _showSnackBar(String message, {bool isError = true}) {

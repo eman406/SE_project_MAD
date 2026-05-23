@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../login.dart'; // Import main login page
-import 'AdminUsers.dart'; // Import User Management
-import 'AdminProducts.dart'; // Import Product Management
+import 'AdminUsers.dart';
+import 'AdminProducts.dart';
+import 'AdminWorker.dart';
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({super.key});
@@ -234,7 +235,7 @@ class AdminDashboard extends StatelessWidget {
               mainAxisSpacing: 16,
               childAspectRatio: 0.85,
               children: [
-                // LINKED: Total Users Card
+                // LINKED: Total Users Card (Named Route)
                 _buildMetricCard(
                   title: "TOTAL USERS",
                   icon: Icons.group,
@@ -242,25 +243,20 @@ class AdminDashboard extends StatelessWidget {
                   subValue: "View/Ban/Delete Users",
                   iconColor: Colors.green,
                   trendIcon: Icons.trending_up,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AdminUsersScreen()),
-                  ),
+                  onTap: () => Navigator.pushNamed(context, '/admin_users'),
                 ),
+                // LINKED: Worker Requests Card
                 _buildMetricCard(
-                  title: "TOTAL WORKERS",
+                  title: "WORKER REQUESTS",
                   icon: Icons.engineering,
-                  value: "312",
-                  subValue: "Active Online",
+                  value: "Pending",
+                  subValue: "Review Applications",
                   iconColor: Colors.orange,
-                  onTap: () {}, // Future Implementation
+                  onTap: () => Navigator.pushNamed(context, '/admin_workers'),
                 ),
                 _buildInstallationCard(),
                 _buildSalesCard(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AdminProductManagement()),
-                  ),
+                  onTap: () => Navigator.pushNamed(context, '/admin_products'),
                 ),
               ],
             ),
@@ -281,16 +277,11 @@ class AdminDashboard extends StatelessWidget {
         currentIndex: 0,
         onTap: (index) {
           if (index == 1) {
-            // LINKED: Bottom Bar Users Item
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AdminUsersScreen()),
-            );
+            Navigator.pushNamed(context, '/admin_users');
+          } else if (index == 2) {
+             Navigator.pushNamed(context, '/admin_workers');
           } else if (index == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AdminProductManagement()),
-            );
+            Navigator.pushNamed(context, '/admin_products');
           }
         },
         items: const [
