@@ -170,29 +170,51 @@ class HomeSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 25),
-          const Text("Job Statistics", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
-          const SizedBox(height: 15),
-          Row(
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('tasks')
+          .where('workerId', isEqualTo: worker.id)
+          .snapshots(),
+      builder: (context, snapshot) {
+        int assignedCount = 0;
+        int completedCount = 0;
+
+        if (snapshot.hasData) {
+          for (var doc in snapshot.data!.docs) {
+            String status = doc['status'] ?? 'Pending';
+            if (status == 'Completed') {
+              completedCount++;
+            } else if (status == 'Pending' || status == 'In Progress') {
+              assignedCount++;
+            }
+          }
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _statCard("Assigned", "5", Colors.orange)),
-              const SizedBox(width: 15),
-              Expanded(child: _statCard("Completed", "12", Colors.green)),
+              _buildHeader(),
+              const SizedBox(height: 25),
+              const Text("Job Statistics", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  Expanded(child: _statCard("Assigned", assignedCount.toString(), Colors.orange)),
+                  const SizedBox(width: 15),
+                  Expanded(child: _statCard("Completed", completedCount.toString(), Colors.green)),
+                ],
+              ),
+              const SizedBox(height: 25),
+              const Text("Quick Links", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
+              const SizedBox(height: 15),
+              _buildActionCard(context, "Check Safety Protocols", Icons.security, Colors.blue),
+              _buildActionCard(context, "Service Guidelines", Icons.list_alt, Colors.purple),
             ],
           ),
-          const SizedBox(height: 25),
-          const Text("Quick Links", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
-          const SizedBox(height: 15),
-          _buildActionCard(context, "Check Safety Protocols", Icons.security, Colors.blue),
-          _buildActionCard(context, "Service Guidelines", Icons.list_alt, Colors.purple),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -333,7 +355,7 @@ class TasksSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => _updateStatus(task.id, 'Rejected'),
+                    onPressed: () => _updateStatus(task, 'Rejected'),
                     style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red)),
                     child: const Text("Reject"),
                   ),
@@ -341,7 +363,7 @@ class TasksSection extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _showStatusPicker(context, task.id),
+                    onPressed: () => _showStatusPicker(context, task),
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E3A5F), foregroundColor: Colors.white),
                     child: const Text("Update Status"),
                   ),
@@ -375,11 +397,29 @@ class TasksSection extends StatelessWidget {
     );
   }
 
-  void _updateStatus(String taskId, String newStatus) {
-    FirebaseFirestore.instance.collection('tasks').doc(taskId).update({'status': newStatus});
+  void _updateStatus(TaskModel task, String newStatus) async {
+    // 1. Update Task Status
+    await FirebaseFirestore.instance.collection('tasks').doc(task.id).update({'status': newStatus});
+
+    // 2. If it's linked to an installation, update the installation status too
+    if (task.installationId != null) {
+      String instStatus = 'Worker Assigned';
+      if (newStatus == 'Completed') {
+        instStatus = 'Installation Completed';
+        await FirebaseFirestore.instance.collection('installations').doc(task.installationId).update({
+          'status': instStatus,
+          'completionDate': FieldValue.serverTimestamp(),
+        });
+      } else if (newStatus == 'In Progress') {
+        instStatus = 'Installation In Progress';
+         await FirebaseFirestore.instance.collection('installations').doc(task.installationId).update({
+          'status': instStatus,
+        });
+      }
+    }
   }
 
-  void _showStatusPicker(BuildContext context, String taskId) {
+  void _showStatusPicker(BuildContext context, TaskModel task) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -391,9 +431,9 @@ class TasksSection extends StatelessWidget {
             children: [
               const Text("Update Task Status", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              ListTile(leading: const Icon(Icons.pending_actions, color: Colors.orange), title: const Text("Pending"), onTap: () { _updateStatus(taskId, 'Pending'); Navigator.pop(context); }),
-              ListTile(leading: const Icon(Icons.play_circle_outline, color: Colors.blue), title: const Text("In Progress"), onTap: () { _updateStatus(taskId, 'In Progress'); Navigator.pop(context); }),
-              ListTile(leading: const Icon(Icons.check_circle_outline, color: Colors.green), title: const Text("Completed"), onTap: () { _updateStatus(taskId, 'Completed'); Navigator.pop(context); }),
+              ListTile(leading: const Icon(Icons.pending_actions, color: Colors.orange), title: const Text("Pending"), onTap: () { _updateStatus(task, 'Pending'); Navigator.pop(context); }),
+              ListTile(leading: const Icon(Icons.play_circle_outline, color: Colors.blue), title: const Text("In Progress"), onTap: () { _updateStatus(task, 'In Progress'); Navigator.pop(context); }),
+              ListTile(leading: const Icon(Icons.check_circle_outline, color: Colors.green), title: const Text("Completed"), onTap: () { _updateStatus(task, 'Completed'); Navigator.pop(context); }),
             ],
           ),
         );

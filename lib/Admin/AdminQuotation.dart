@@ -9,7 +9,7 @@ class AdminQuotationScreen extends StatefulWidget {
 }
 
 class _AdminQuotationScreenState extends State<AdminQuotationScreen> {
-  final _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _kwController = TextEditingController();
@@ -21,23 +21,23 @@ class _AdminQuotationScreenState extends State<AdminQuotationScreen> {
 
   bool _isLoading = false;
 
-  // Save or Update Quotation
+  // LOGIC: Save or Update Quotation (Standardized by KW size)
   Future<void> _saveQuotation() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      int kw = int.parse(_kwController.text);
+      int kw = int.parse(_kwController.text.trim());
       String docId = "${kw}KW"; // document ID like 1KW, 5KW, etc.
 
       await _firestore.collection('quotations').doc(docId).set({
         'kw': kw,
-        'price': double.parse(_priceController.text),
-        'panels': _panelsController.text,
-        'inverter': _inverterController.text,
-        'battery': _batteryController.text,
-        'details': _detailsController.text,
+        'price': double.parse(_priceController.text.trim()),
+        'panels': _panelsController.text.trim(),
+        'inverter': _inverterController.text.trim(),
+        'battery': _batteryController.text.trim(),
+        'details': _detailsController.text.trim(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
@@ -102,13 +102,14 @@ class _AdminQuotationScreenState extends State<AdminQuotationScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text("Manage Quotations", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Manage System Prices", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF1E3A5F),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // --- Input Form ---
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Form(
@@ -118,45 +119,53 @@ class _AdminQuotationScreenState extends State<AdminQuotationScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   child: ExpansionTile(
                     initiallyExpanded: true,
-                    title: const Text("Add / Update Quotation", 
+                    title: const Text("Add / Update Standard Quotation", 
                         style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                         child: Column(
                           children: [
                             TextFormField(
                               controller: _kwController,
                               decoration: const InputDecoration(labelText: "System Size (KW)", hintText: "e.g., 1, 5, 10"),
                               keyboardType: TextInputType.number,
-                              validator: (v) => v!.isEmpty ? "Required" : null,
+                              validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
                             ),
+                            const SizedBox(height: 10),
                             TextFormField(
                               controller: _priceController,
-                              decoration: const InputDecoration(labelText: "Price (Rs)"),
+                              decoration: const InputDecoration(labelText: "Official Price (Rs)"),
                               keyboardType: TextInputType.number,
-                              validator: (v) => v!.isEmpty ? "Required" : null,
+                              validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
                             ),
+                            const SizedBox(height: 10),
                             TextFormField(
                               controller: _panelsController,
                               decoration: const InputDecoration(labelText: "Solar Panels Detail", hintText: "e.g., 10 x 540W Mono"),
                             ),
+                            const SizedBox(height: 10),
                             TextFormField(
                               controller: _inverterController,
                               decoration: const InputDecoration(labelText: "Inverter Detail"),
                             ),
+                            const SizedBox(height: 10),
                             TextFormField(
                               controller: _batteryController,
-                              decoration: const InputDecoration(labelText: "Battery Detail (if any)"),
+                              decoration: const InputDecoration(labelText: "Battery Detail (Optional)"),
                             ),
+                            const SizedBox(height: 10),
                             TextFormField(
                               controller: _detailsController,
-                              decoration: const InputDecoration(labelText: "Installation & Other Details"),
+                              decoration: const InputDecoration(labelText: "Installation & Service Details"),
                               maxLines: 2,
                             ),
                             const SizedBox(height: 20),
                             _isLoading 
-                              ? const CircularProgressIndicator()
+                              ? const Padding(
+                                  padding: EdgeInsets.all(8.0),
+                                  child: CircularProgressIndicator(),
+                                )
                               : ElevatedButton(
                                   onPressed: _saveQuotation,
                                   style: ElevatedButton.styleFrom(
@@ -165,7 +174,7 @@ class _AdminQuotationScreenState extends State<AdminQuotationScreen> {
                                     minimumSize: const Size(double.infinity, 50),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                   ),
-                                  child: const Text("SAVE TO SYSTEM", style: TextStyle(fontWeight: FontWeight.bold)),
+                                  child: const Text("SAVE TO DATABASE", style: TextStyle(fontWeight: FontWeight.bold)),
                                 ),
                             const SizedBox(height: 15),
                           ],
@@ -179,9 +188,11 @@ class _AdminQuotationScreenState extends State<AdminQuotationScreen> {
             
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Text("Active Quotations", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
+              child: Text("Active Quotations in System", 
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
             ),
 
+            // --- List of Quotations ---
             StreamBuilder<QuerySnapshot>(
               stream: _firestore.collection('quotations').orderBy('kw').snapshots(),
               builder: (context, snapshot) {
@@ -189,7 +200,10 @@ class _AdminQuotationScreenState extends State<AdminQuotationScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No quotations in database."));
+                  return const Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: Center(child: Text("No quotations added yet.")),
+                  );
                 }
                 
                 return ListView.builder(
@@ -203,10 +217,11 @@ class _AdminQuotationScreenState extends State<AdminQuotationScreen> {
                     
                     return Card(
                       margin: const EdgeInsets.only(bottom: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: Colors.blue.shade100,
-                          child: Text("${data['kw']}K", style: const TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text("${data['kw']}K", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
                         ),
                         title: Text("Rs. ${data['price']}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
                         subtitle: Text("${data['panels']}\n${data['inverter']}"),

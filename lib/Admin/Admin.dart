@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../login.dart'; // Import main login page
+import '../login.dart'; 
 import 'AdminUsers.dart';
 import 'AdminProducts.dart';
 import 'AdminWorker.dart';
 import 'AdminQuotation.dart';
+import 'AdminInstallation.dart'; // Added Import
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({super.key});
@@ -173,8 +174,6 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   }
 }
 
-/* ---------------- ADMIN DASHBOARD ---------------- */
-
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
 
@@ -192,20 +191,11 @@ class AdminDashboard extends StatelessWidget {
             child: Icon(Icons.person, color: Colors.white),
           ),
         ),
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "ADMIN DASHBOARD",
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 20,
-              ),
-            ),
-            Text(
-              "Solar Energy Overview",
-              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-            ),
+            Text("ADMIN DASHBOARD", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            Text("Installation Workflow Overview", style: TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         actions: [
@@ -213,11 +203,7 @@ class AdminDashboard extends StatelessWidget {
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                  (route) => false,
-                );
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
               }
             },
             icon: const Icon(Icons.logout, color: Colors.red),
@@ -237,82 +223,49 @@ class AdminDashboard extends StatelessWidget {
               childAspectRatio: 0.85,
               children: [
                 _buildMetricCard(
+                  title: "INSTALLATIONS",
+                  icon: Icons.plumbing_rounded,
+                  value: "Manage",
+                  subValue: "Assign Workers",
+                  iconColor: Colors.orange,
+                  onTap: () => Navigator.pushNamed(context, '/admin_installations'),
+                ),
+                _buildMetricCard(
+                  title: "QUOTATIONS",
+                  icon: Icons.request_quote_rounded,
+                  value: "Set Prices",
+                  subValue: "Manage System KW",
+                  iconColor: Colors.blue,
+                  onTap: () => Navigator.pushNamed(context, '/admin_quotations'),
+                ),
+                _buildMetricCard(
                   title: "TOTAL USERS",
                   icon: Icons.group,
-                  value: "Manage",
-                  subValue: "View/Ban/Delete Users",
+                  value: "View All",
+                  subValue: "Manage Users",
                   iconColor: Colors.green,
-                  trendIcon: Icons.trending_up,
                   onTap: () => Navigator.pushNamed(context, '/admin_users'),
                 ),
                 _buildMetricCard(
                   title: "WORKER REQUESTS",
                   icon: Icons.engineering,
                   value: "Pending",
-                  subValue: "Review Applications",
-                  iconColor: Colors.orange,
+                  subValue: "Approval Required",
+                  iconColor: Colors.deepPurple,
                   onTap: () => Navigator.pushNamed(context, '/admin_workers'),
-                ),
-                // NEW: Quotations Card
-                _buildMetricCard(
-                  title: "QUOTATIONS",
-                  icon: Icons.file_copy_rounded,
-                  value: "Docs",
-                  subValue: "Upload Word Quotes",
-                  iconColor: Colors.blue,
-                  onTap: () => Navigator.pushNamed(context, '/admin_quotations'),
-                ),
-                _buildSalesCard(
-                  onTap: () => Navigator.pushNamed(context, '/admin_products'),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildActionTile(
-              icon: Icons.calculate_outlined,
-              iconColor: Colors.green,
-              title: "PROJECT ESTIMATION TOOL",
-              isBold: true,
+              context,
+              icon: Icons.inventory_2_rounded,
+              iconColor: Colors.teal,
+              title: "MANAGE PRODUCTS & STOCK",
+              onTap: () => Navigator.pushNamed(context, '/admin_products'),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        currentIndex: 0,
-        onTap: (index) {
-          if (index == 1) {
-            Navigator.pushNamed(context, '/admin_users');
-          } else if (index == 2) {
-             Navigator.pushNamed(context, '/admin_workers');
-          } else if (index == 3) {
-            Navigator.pushNamed(context, '/admin_products');
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline),
-            label: 'Users',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_pin_outlined),
-            label: 'Workers',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart_outlined),
-            label: 'Products',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.solar_power_outlined),
-            label: 'Installations',
-          ),
-        ],
       ),
     );
   }
@@ -324,189 +277,52 @@ class AdminDashboard extends StatelessWidget {
     required String subValue,
     required Color iconColor,
     required VoidCallback onTap,
-    IconData? trendIcon,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: _cardDecoration(),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
             const Spacer(),
             Center(child: Icon(icon, size: 40, color: iconColor)),
             const Spacer(),
-            Row(
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (trendIcon != null)
-                  Icon(trendIcon, color: Colors.green, size: 18),
-              ],
-            ),
-            Text(
-              subValue,
-              style: const TextStyle(fontSize: 10, color: Colors.black54),
-            ),
+            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(subValue, style: const TextStyle(fontSize: 10, color: Colors.black54)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInstallationCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: _cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "TOTAL INSTALLATIONS",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-          ),
-          const SizedBox(height: 8),
-          const Center(
-            child: Icon(Icons.solar_power, size: 35, color: Colors.blueGrey),
-          ),
-          const Text(
-            "689",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const Text(
-            "Installed Systems",
-            style: TextStyle(fontSize: 10),
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: const LinearProgressIndicator(
-              value: 0.7,
-              minHeight: 15,
-              backgroundColor: Colors.grey,
-              color: Colors.green,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            "Generated... 14.2 MWh",
-            style: TextStyle(fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSalesCard({required VoidCallback onTap}) {
+  Widget _buildActionTile(BuildContext context, {required IconData icon, required Color iconColor, required String title, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: _cardDecoration(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Row(
           children: [
-            const Text(
-              "PRODUCT SALES",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-            ),
-            const SizedBox(height: 4),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Icon(Icons.calculate, color: Colors.green, size: 24),
-                Icon(Icons.shopping_cart, color: Colors.green, size: 24),
-              ],
-            ),
-            const Divider(),
-            _productRow("Panels", r"$299.99"),
-            const SizedBox(height: 4),
-            _productRow("Inverter", r"$849.00"),
+            Icon(icon, color: iconColor),
+            const SizedBox(width: 12),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E3A5F))),
+            const Spacer(),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _productRow(String name, String price) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          name,
-          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          price,
-          style: const TextStyle(
-            fontSize: 9,
-            color: Colors.green,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    bool isBold = false,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: _cardDecoration(),
-      child: Row(
-        children: [
-          Icon(icon, color: iconColor),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          const Spacer(),
-          Container(
-            width: 20,
-            height: 4,
-            decoration: BoxDecoration(
-              color: iconColor,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  BoxDecoration _cardDecoration() {
-    return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.05),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
-        ),
-      ],
     );
   }
 }

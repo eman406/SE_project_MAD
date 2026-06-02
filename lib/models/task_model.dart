@@ -10,6 +10,7 @@ class TaskModel {
   final String assignedBy;
   final String status; // Pending, In Progress, Completed, Rejected
   final String workerId;
+  final String? installationId; // Link to installation request
 
   TaskModel({
     required this.id,
@@ -21,6 +22,7 @@ class TaskModel {
     required this.assignedBy,
     required this.status,
     required this.workerId,
+    this.installationId,
   });
 
   Map<String, dynamic> toMap() {
@@ -33,6 +35,7 @@ class TaskModel {
       'assignedBy': assignedBy,
       'status': status,
       'workerId': workerId,
+      'installationId': installationId,
     };
   }
 
@@ -43,11 +46,12 @@ class TaskModel {
       title: data['title'] ?? '',
       description: data['description'] ?? '',
       location: data['location'] ?? '',
-      dateTime: (data['dateTime'] as Timestamp).toDate(),
+      dateTime: data['dateTime'] != null ? (data['dateTime'] as Timestamp).toDate() : DateTime.now(),
       priority: data['priority'] ?? 'Medium',
       assignedBy: data['assignedBy'] ?? 'Admin',
       status: data['status'] ?? 'Pending',
       workerId: data['workerId'] ?? '',
+      installationId: data['installationId'],
     );
   }
 }
