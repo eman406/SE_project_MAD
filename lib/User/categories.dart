@@ -5,6 +5,8 @@ import '../User/info.dart';
 import '../products.dart';
 import 'calculator.dart';
 import '../login.dart';
+import 'user_profile.dart';
+import 'my_orders.dart';
 
 const Color primaryBlue = Color(0xFF0F4C81);
 const Color solarYellow = Color(0xFFFFC107);
@@ -46,68 +48,17 @@ class _CategoriesDashboardState extends State<CategoriesDashboard> {
     }
   }
 
-  void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-        (route) => false,
-      );
-    }
-  }
-
   void _openPage(int index) {
-    setState(() => _selectedIndex = index);
-
+    if (index == _selectedIndex) return;
+    
     if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const SolarInfoPage()),
-      );
-    }
-
-    if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const SolarCalculatorPage()),
-      );
-    }
-
-    if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const SolarShopPage()),
-      );
-    }
-
-    if (index == 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile Page")),
-      );
-    }
-  }
-
-  void _openCategory(String type) {
-    if (type == "products") {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const SolarShopPage()),
-      );
-    }
-
-    if (type == "info") {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const SolarInfoPage()),
-      );
-    }
-
-    if (type == "calculator") {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const SolarCalculatorPage()),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SolarShopPage()));
+    } else if (index == 2) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SolarCalculatorPage()));
+    } else if (index == 3) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MyOrdersPage()));
+    } else if (index == 4) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const UserProfilePage()));
     }
   }
 
@@ -122,95 +73,64 @@ class _CategoriesDashboardState extends State<CategoriesDashboard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               const Text(
-                "Categories dashboard",
+                "Our Services",
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.w800,
                   color: darkGray,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               GridView.count(
                 crossAxisCount: 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 0.9,
+                childAspectRatio: 0.85,
                 children: [
-                  GestureDetector(
-                    onTap: () {},
-                    child: _categoryCard(
-                      title: "DASHBOARD",
-                      icon: Icons.show_chart_rounded,
-                      iconColor: primaryBlue,
-                      background: const Color(0xFFEAF3FB),
-                      borderColor: primaryBlue.withOpacity(0.25),
-                      subtitle: "View Real-time\nData",
-                      extraLines: const [
-                        "Generation:   1.2 kWh",
-                        "Consumption:  0.8 kWh",
-                      ],
-                      topRightIcon: Icons.wb_sunny_outlined,
-                      topRightColor: solarYellow,
-                    ),
+                  _serviceCard(
+                    title: "SOLAR SHOP",
+                    icon: Icons.shopping_bag_outlined,
+                    iconColor: successGreen,
+                    background: const Color(0xFFEAF8EE),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SolarShopPage())),
+                    subtitle: "Buy panels, inverters & more",
                   ),
-
-                  GestureDetector(
-                    onTap: () => _openCategory("calculator"),
-                    child: _categoryCard(
-                      title: "SYSTEM\nCALCULATOR",
-                      icon: Icons.calculate_outlined,
-                      iconColor: Colors.black87,
-                      background: const Color(0xFFFFF4CC),
-                      borderColor: solarYellow.withOpacity(0.4),
-                      subtitle: "Estimate Your\nSolar Potential",
-                      topRightIcon: Icons.grid_view_rounded,
-                      topRightColor: solarYellow,
-                    ),
+                  _serviceCard(
+                    title: "SYSTEM CALCULATOR",
+                    icon: Icons.calculate_outlined,
+                    iconColor: solarYellow,
+                    background: const Color(0xFFFFF4CC),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SolarCalculatorPage())),
+                    subtitle: "Estimate your solar needs",
                   ),
-
-                  GestureDetector(
-                    onTap: () => _openCategory("products"),
-                    child: _categoryCard(
-                      title: "PRODUCTS",
-                      icon: Icons.solar_power_rounded,
-                      iconColor: successGreen,
-                      background: const Color(0xFFEAF8EE),
-                      borderColor: successGreen.withOpacity(0.3),
-                      subtitle: "Explore New\nTech & Upgrades",
-                      topRightIcon: Icons.shopping_cart_outlined,
-                      topRightColor: successGreen,
-                    ),
+                  _serviceCard(
+                    title: "MY ORDERS",
+                    icon: Icons.local_shipping_outlined,
+                    iconColor: primaryBlue,
+                    background: const Color(0xFFEAF3FB),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyOrdersPage())),
+                    subtitle: "Track your purchases",
                   ),
-
-                  GestureDetector(
-                    onTap: () => _openCategory("info"),
-                    child: _categoryCard(
-                      title: "INFORMATION",
-                      icon: Icons.info_outline_rounded,
-                      iconColor: primaryBlue,
-                      background: const Color(0xFFEAF7F9),
-                      borderColor: primaryBlue.withOpacity(0.18),
-                      subtitle: "Help, FAQs &\nGuides",
-                      topRightIcon: Icons.description_outlined,
-                      topRightColor: primaryBlue,
-                    ),
+                  _serviceCard(
+                    title: "LEARN SOLAR",
+                    icon: Icons.info_outline_rounded,
+                    iconColor: Colors.deepPurple,
+                    background: const Color(0xFFF3EAFB),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SolarInfoPage())),
+                    subtitle: "Guides and information",
                   ),
                 ],
               ),
-
-              const SizedBox(height: 16),
-              _healthBar(),
-              const SizedBox(height: 8),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: _bottomNav(),
+      bottomNavigationBar: _userBottomNav(0),
     );
   }
 
@@ -218,26 +138,26 @@ class _CategoriesDashboardState extends State<CategoriesDashboard> {
     return Row(
       children: [
         const CircleAvatar(
-          radius: 26,
-          backgroundColor: borderGray,
-          child: Icon(Icons.person, color: primaryBlue, size: 30),
+          radius: 28,
+          backgroundColor: primaryBlue,
+          child: Icon(Icons.person, color: Colors.white, size: 32),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Welcome back,",
+                "Hello,",
                 style: TextStyle(
-                  fontSize: 14,
-                  color: darkGray.withOpacity(0.7),
+                  fontSize: 16,
+                  color: darkGray.withOpacity(0.6),
                 ),
               ),
               Text(
                 userName,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: darkGray,
                 ),
@@ -246,210 +166,133 @@ class _CategoriesDashboardState extends State<CategoriesDashboard> {
             ],
           ),
         ),
-        // Logout Button
-        IconButton(
-          onPressed: _logout,
-          icon: const Icon(Icons.logout, color: Colors.red, size: 28),
-          tooltip: "Logout",
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+          ),
+          child: IconButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SolarShopPage())),
+            icon: const Icon(Icons.shopping_cart_outlined, color: primaryBlue),
+          ),
         ),
       ],
     );
   }
 
-  Widget _categoryCard({
+  Widget _serviceCard({
     required String title,
     required IconData icon,
     required Color iconColor,
     required Color background,
-    required Color borderColor,
+    required VoidCallback onTap,
     required String subtitle,
-    List<String>? extraLines,
-    IconData? topRightIcon,
-    Color? topRightColor,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: softWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor, width: 1.4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: darkGray,
-                    height: 1.1,
-                  ),
-                ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: borderGray, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: background,
+                shape: BoxShape.circle,
               ),
-              if (topRightIcon != null)
-                Icon(
-                  topRightIcon,
-                  size: 20,
-                  color: topRightColor ?? primaryBlue,
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Container(
-            height: 92,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(16),
+              child: Icon(icon, size: 32, color: iconColor),
             ),
-            child: Center(
-              child: Icon(icon, size: 66, color: iconColor),
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (extraLines != null) ...[
-            ...extraLines.map(
-                  (line) => Text(
-                line,
-                style: const TextStyle(
-                  fontSize: 10.5,
-                  color: darkGray,
-                  height: 1.35,
-                ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: darkGray,
+                height: 1.1,
               ),
             ),
             const SizedBox(height: 6),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: darkGray.withOpacity(0.6),
+                height: 1.2,
+              ),
+            ),
           ],
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: 14,
-              color: darkGray,
-              height: 1.25,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _healthBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F8EE),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.battery_charging_full, color: successGreen),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Row(
-              children: [
-                Text(
-                  "System Health: ",
-                  style: TextStyle(fontSize: 14, color: darkGray),
-                ),
-                Text(
-                  "Optimal",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: successGreen,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 34,
-            height: 10,
-            decoration: BoxDecoration(
-              color: successGreen,
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _bottomNav() {
+  Widget _userBottomNav(int currentIndex) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 18,
-            offset: const Offset(0, -3),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
       ),
       child: BottomNavigationBar(
-        currentIndex: _selectedIndex,
+        currentIndex: currentIndex,
         onTap: _openPage,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: successGreen,
+        selectedItemColor: primaryBlue,
         unselectedItemColor: Colors.grey,
-        elevation: 0,
-        showUnselectedLabels: true,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.pie_chart_outline),
-            activeIcon: Icon(Icons.pie_chart),
-            label: 'Information',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calculate_outlined),
-            activeIcon: Icon(Icons.calculate),
-            label: 'Calculator',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag_outlined),
-            activeIcon: Icon(Icons.shopping_bag),
-            label: 'Shop',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), activeIcon: Icon(Icons.shopping_bag), label: 'Shop'),
+          BottomNavigationBarItem(icon: Icon(Icons.calculate_outlined), activeIcon: Icon(Icons.calculate), label: 'Calc'),
+          BottomNavigationBarItem(icon: Icon(Icons.local_shipping_outlined), activeIcon: Icon(Icons.local_shipping), label: 'Orders'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
   }
+}
+
+// Global bottom navigation for users to reuse
+Widget buildUserBottomNav(BuildContext context, int currentIndex) {
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+    ),
+    child: BottomNavigationBar(
+      currentIndex: currentIndex,
+      onTap: (index) {
+        if (index == currentIndex) return;
+        if (index == 0) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CategoriesDashboard()));
+        if (index == 1) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SolarShopPage()));
+        if (index == 2) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SolarCalculatorPage()));
+        if (index == 3) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MyOrdersPage()));
+        if (index == 4) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const UserProfilePage()));
+      },
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: primaryBlue,
+      unselectedItemColor: Colors.grey,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), activeIcon: Icon(Icons.shopping_bag), label: 'Shop'),
+        BottomNavigationBarItem(icon: Icon(Icons.calculate_outlined), activeIcon: Icon(Icons.calculate), label: 'Calc'),
+        BottomNavigationBarItem(icon: Icon(Icons.local_shipping_outlined), activeIcon: Icon(Icons.local_shipping), label: 'Orders'),
+        BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+      ],
+    ),
+  );
 }

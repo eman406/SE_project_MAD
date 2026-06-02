@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../login.dart'; 
 import 'AdminUsers.dart';
 import 'AdminProducts.dart';
 import 'AdminWorker.dart';
 import 'AdminQuotation.dart';
-import 'AdminInstallation.dart'; // Added Import
+import 'AdminInstallation.dart';
+import 'AdminOrders.dart';
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({super.key});
@@ -85,7 +87,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
+                  color: Colors.black.withOpacity(0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -174,8 +176,50 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   }
 }
 
-class AdminDashboard extends StatelessWidget {
+class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
+
+  @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _pages = [
+    const AdminHome(),
+    const AdminProductManagement(),
+    const AdminQuotationScreen(),
+    const AdminOrdersScreen(),
+    const AdminWorkerScreen(),
+    const AdminProfile(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) => setState(() => _selectedIndex = index),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Products'),
+          BottomNavigationBarItem(icon: Icon(Icons.request_quote), label: 'Quotes'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Orders'),
+          BottomNavigationBarItem(icon: Icon(Icons.engineering), label: 'Workers'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
+    );
+  }
+}
+
+class AdminHome extends StatelessWidget {
+  const AdminHome({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -184,29 +228,15 @@ class AdminDashboard extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: CircleAvatar(
-            backgroundColor: Colors.green,
-            child: Icon(Icons.person, color: Colors.white),
-          ),
-        ),
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("ADMIN DASHBOARD", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-            Text("Installation Workflow Overview", style: TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
+        title: const Text("ADMIN PANEL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black)),
         actions: [
           IconButton(
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
-              }
-            },
-            icon: const Icon(Icons.logout, color: Colors.red),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminInstallationScreen())),
+            icon: const Icon(Icons.plumbing_rounded, color: Colors.orange),
+          ),
+          IconButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUsersScreen())),
+            icon: const Icon(Icons.group, color: Colors.green),
           ),
         ],
       ),
@@ -214,112 +244,84 @@ class AdminDashboard extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            const Text("Quick Overview", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 0.85,
+              childAspectRatio: 1.2,
               children: [
-                _buildMetricCard(
-                  title: "INSTALLATIONS",
-                  icon: Icons.plumbing_rounded,
-                  value: "Manage",
-                  subValue: "Assign Workers",
-                  iconColor: Colors.orange,
-                  onTap: () => Navigator.pushNamed(context, '/admin_installations'),
-                ),
-                _buildMetricCard(
-                  title: "QUOTATIONS",
-                  icon: Icons.request_quote_rounded,
-                  value: "Set Prices",
-                  subValue: "Manage System KW",
-                  iconColor: Colors.blue,
-                  onTap: () => Navigator.pushNamed(context, '/admin_quotations'),
-                ),
-                _buildMetricCard(
-                  title: "TOTAL USERS",
-                  icon: Icons.group,
-                  value: "View All",
-                  subValue: "Manage Users",
-                  iconColor: Colors.green,
-                  onTap: () => Navigator.pushNamed(context, '/admin_users'),
-                ),
-                _buildMetricCard(
-                  title: "WORKER REQUESTS",
-                  icon: Icons.engineering,
-                  value: "Pending",
-                  subValue: "Approval Required",
-                  iconColor: Colors.deepPurple,
-                  onTap: () => Navigator.pushNamed(context, '/admin_workers'),
-                ),
+                _statCard("Pending Orders", "orders", "Pending", Colors.orange),
+                _statCard("Approved Workers", "approved_workers", null, Colors.blue),
+                _statCard("Installation Req", "installations", "Pending Assignment", Colors.purple),
+                _statCard("Total Users", "users", null, Colors.green),
               ],
             ),
-            const SizedBox(height: 16),
-            _buildActionTile(
-              context,
-              icon: Icons.inventory_2_rounded,
-              iconColor: Colors.teal,
-              title: "MANAGE PRODUCTS & STOCK",
-              onTap: () => Navigator.pushNamed(context, '/admin_products'),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMetricCard({
-    required String title,
-    required IconData icon,
-    required String value,
-    required String subValue,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
+  Widget _statCard(String title, String collection, String? statusFilter, Color color) {
+    Query query = FirebaseFirestore.instance.collection(collection);
+    if (statusFilter != null) {
+      query = query.where('status', isEqualTo: statusFilter);
+    }
+    
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snapshot) {
+        int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(count.toString(), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+              const SizedBox(height: 4),
+              Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey), textAlign: TextAlign.center),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class AdminProfile extends StatelessWidget {
+  const AdminProfile({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Admin Profile"), backgroundColor: Colors.green, foregroundColor: Colors.white),
+      body: Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-            const Spacer(),
-            Center(child: Icon(icon, size: 40, color: iconColor)),
-            const Spacer(),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text(subValue, style: const TextStyle(fontSize: 10, color: Colors.black54)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionTile(BuildContext context, {required IconData icon, required Color iconColor, required String title, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: iconColor),
-            const SizedBox(width: 12),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E3A5F))),
-            const Spacer(),
-            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+            const CircleAvatar(radius: 50, backgroundColor: Colors.green, child: Icon(Icons.admin_panel_settings, size: 60, color: Colors.white)),
+            const SizedBox(height: 20),
+            const Text("Administrator", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const Text("admin@gmail.com", style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 40),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
+              },
+              icon: const Icon(Icons.logout),
+              label: const Text("Logout"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, minimumSize: const Size(200, 50)),
+            )
           ],
         ),
       ),

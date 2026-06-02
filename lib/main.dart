@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'splash.dart';
-import 'Admin/Admin.dart';
-import 'Admin/AdminUsers.dart';
-import 'Admin/AdminWorker.dart';
-import 'Admin/AdminQuotation.dart';
-import 'Admin/AdminInstallation.dart';
-import 'Admin/AdminProducts.dart'; 
-import 'User/calculator.dart';
-import 'User/WorkerRegister.dart';
-import 'Worker/workerDashboard.dart';
-import 'firebase_test.dart';
+import 'package:se_project/firebase_options.dart';
+import 'package:se_project/splash.dart';
+import 'package:se_project/Admin/Admin.dart';
+import 'package:se_project/Admin/AdminUsers.dart';
+import 'package:se_project/Admin/AdminWorker.dart';
+import 'package:se_project/Admin/AdminQuotation.dart';
+import 'package:se_project/Admin/AdminInstallation.dart';
+import 'package:se_project/Admin/AdminProducts.dart'; 
+import 'package:se_project/Admin/AdminOrders.dart';
+import 'package:se_project/User/calculator.dart';
+import 'package:se_project/User/WorkerRegister.dart';
+import 'package:se_project/User/my_orders.dart';
+import 'package:se_project/User/user_profile.dart';
+import 'package:se_project/User/cart_page.dart';
+import 'package:se_project/User/categories.dart';
+import 'package:se_project/products.dart';
+import 'package:se_project/Worker/workerDashboard.dart';
+import 'package:se_project/firebase_test.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,9 +49,14 @@ class SmartEngineeringApp extends StatelessWidget {
         '/admin_workers': (context) => const AdminWorkerScreen(),
         '/admin_quotations': (context) => const AdminQuotationScreen(),
         '/admin_installations': (context) => const AdminInstallationScreen(),
+        '/admin_orders': (context) => const AdminOrdersScreen(),
         '/worker_register': (context) => const WorkerRegisterScreen(),
         '/worker_dashboard': (context) => const WorkerDashboard(),
         '/calculator': (context) => const SolarCalculatorPage(),
+        '/my_orders': (context) => const MyOrdersPage(),
+        '/user_profile': (context) => const UserProfilePage(),
+        '/cart': (context) => const CartPage(),
+        '/shop': (context) => const SolarShopPage(),
         '/firebase_test': (context) => const FirebaseTestPage(),
       },
     );
