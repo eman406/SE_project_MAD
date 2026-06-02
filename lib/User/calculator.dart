@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 const Color primaryBlue = Color(0xFF0F4C81);
 const Color solarYellow = Color(0xFFFFC107);
@@ -52,7 +53,8 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
     });
   }
 
-  void _showQuotationDialog() {
+  // logic to fetch quotation from Firebase
+  Future<void> _fetchAndShowQuotation() async {
     if (_totalWatts == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -63,68 +65,92 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
       return;
     }
 
-    // Hardcoded pricing logic for the quotation
-    // Standard rate in PKR (example: 125k per kW)
-    double pricePerKW = 125000;
-    double totalCost = _recommendedKW * pricePerKW;
-    int panelCount = (_recommendedKW * 1000 / 540).ceil();
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
+    try {
+      // LOGIC: Nearest higher KW
+      int requiredKW = _recommendedKW.ceil();
+      String docId = "${requiredKW}KW";
+
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('quotations')
+          .doc(docId)
+          .get();
+
+      // Close loading indicator
+      if (mounted) Navigator.pop(context);
+
+      if (doc.exists) {
+        var data = doc.data() as Map<String, dynamic>;
+        if (mounted) _displayOfficialQuotation(data);
+      } else {
+        if (mounted) {
+          _showErrorDialog("No official quotation found for $requiredKW KW in our database. Please contact admin for a custom quote.");
+        }
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // Close loading indicator
+      if (mounted) _showErrorDialog("Error fetching quotation: $e");
+    }
+  }
+
+  void _displayOfficialQuotation(Map<String, dynamic> data) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-          title: const Column(
+          title: Column(
             children: [
-              Icon(Icons.receipt_long_rounded, color: primaryBlue, size: 50),
-              SizedBox(height: 12),
+              const Icon(Icons.verified_user_rounded, color: Colors.green, size: 50),
+              const SizedBox(height: 12),
               Text(
-                "System Quotation",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: darkGray),
+                "Official ${data['kw']} KW Quotation",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: darkGray),
               ),
             ],
           ),
           content: SingleChildScrollView(
             child: ListBody(
               children: [
-                _buildQuoteRow("Total Load:", "${_totalWatts.toStringAsFixed(0)} W"),
-                _buildQuoteRow("System Capacity:", "${_recommendedKW.toStringAsFixed(2)} kW"),
-                _buildQuoteRow("Solar Panels:", "$panelCount x 540W Mono Perc"),
-                _buildQuoteRow("Inverter:", _recommendedKW > 5 ? "Hybrid 3-Phase Smart" : "Hybrid Single-Phase"),
+                _buildQuoteRow("Standard Price:", "Rs. ${data['price']}"),
+                _buildQuoteRow("Solar Panels:", data['panels'] ?? "Standard Set"),
+                _buildQuoteRow("Inverter:", data['inverter'] ?? "Standard Inverter"),
+                if (data['battery'] != null && data['battery'].toString().isNotEmpty)
+                  _buildQuoteRow("Battery:", data['battery']),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Divider(thickness: 1),
                 ),
                 const Text(
-                  "INCLUDES:",
+                  "ADDITIONAL DETAILS:",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
                 ),
-                const Text("• Tier-1 A-Grade Panels\n• Smart Wifi Monitoring\n• Mounting Structure & Wiring\n• Complete Installation"),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(thickness: 1),
+                const SizedBox(height: 4),
+                Text(
+                  data['details'] ?? "Full system installation with warranty.",
+                  style: const TextStyle(fontSize: 13, color: darkGray),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "Estimated Total:",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      "Rs. ${(totalCost / 1000).toStringAsFixed(0)}k",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                        color: successGreen,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
+                const Divider(height: 32),
                 const Text(
-                  "* Market rates may vary. Prices are inclusive of all taxes.",
-                  style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey),
+                  "Final Price (Estimated)",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Rs. ${data['price']}",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    color: successGreen,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -132,13 +158,13 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("CANCEL", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+              child: const Text("CLOSE", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Quote saved successfully!"), backgroundColor: successGreen),
+                  const SnackBar(content: Text("Quote saved to your inquiry history!"), backgroundColor: successGreen),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -150,6 +176,19 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
           ],
         );
       },
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Quotation Notice"),
+        content: Text(message),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK")),
+        ],
+      ),
     );
   }
 
@@ -365,7 +404,7 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: _showQuotationDialog,
+                onPressed: _fetchAndShowQuotation,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: successGreen,
                   foregroundColor: Colors.white,

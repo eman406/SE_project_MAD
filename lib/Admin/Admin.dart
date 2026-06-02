@@ -4,6 +4,7 @@ import '../login.dart'; // Import main login page
 import 'AdminUsers.dart';
 import 'AdminProducts.dart';
 import 'AdminWorker.dart';
+import 'AdminQuotation.dart';
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({super.key});
@@ -235,7 +236,6 @@ class AdminDashboard extends StatelessWidget {
               mainAxisSpacing: 16,
               childAspectRatio: 0.85,
               children: [
-                // LINKED: Total Users Card (Named Route)
                 _buildMetricCard(
                   title: "TOTAL USERS",
                   icon: Icons.group,
@@ -245,7 +245,6 @@ class AdminDashboard extends StatelessWidget {
                   trendIcon: Icons.trending_up,
                   onTap: () => Navigator.pushNamed(context, '/admin_users'),
                 ),
-                // LINKED: Worker Requests Card
                 _buildMetricCard(
                   title: "WORKER REQUESTS",
                   icon: Icons.engineering,
@@ -254,7 +253,15 @@ class AdminDashboard extends StatelessWidget {
                   iconColor: Colors.orange,
                   onTap: () => Navigator.pushNamed(context, '/admin_workers'),
                 ),
-                _buildInstallationCard(),
+                // NEW: Quotations Card
+                _buildMetricCard(
+                  title: "QUOTATIONS",
+                  icon: Icons.file_copy_rounded,
+                  value: "Docs",
+                  subValue: "Upload Word Quotes",
+                  iconColor: Colors.blue,
+                  onTap: () => Navigator.pushNamed(context, '/admin_quotations'),
+                ),
                 _buildSalesCard(
                   onTap: () => Navigator.pushNamed(context, '/admin_products'),
                 ),

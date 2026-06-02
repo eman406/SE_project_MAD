@@ -31,10 +31,10 @@ class _AdminWorkerScreenState extends State<AdminWorkerScreen> with SingleTicker
     return "${date.day}/${date.month}/${date.year}";
   }
 
-  // LOGIC: Approve Worker (Move from pending_workers to 'approved_workers' collection)
+  // LOGIC: Approve Worker (Move from pending_workers to approved_workers collection)
   void _approveWorker(WorkerModel worker) async {
     try {
-      // 1. Move data to 'approved_workers' collection
+      // 1. Move data to 'approved_workers' collection (Standardized Name)
       await _firestore.collection('approved_workers').doc(worker.id).set({
         'uid': worker.id,
         'name': worker.name,
@@ -52,7 +52,7 @@ class _AdminWorkerScreenState extends State<AdminWorkerScreen> with SingleTicker
       // 2. Delete from 'pending_workers'
       await _firestore.collection('pending_workers').doc(worker.id).delete();
 
-      // 3. Ensure they are removed from 'users' collection to keep worker data separate
+      // 3. Cleanup: Ensure worker is not in the normal 'users' collection
       await _firestore.collection('users').doc(worker.id).delete();
 
       if (mounted) {
@@ -169,9 +169,9 @@ class _AdminWorkerScreenState extends State<AdminWorkerScreen> with SingleTicker
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: ExpansionTile(
         leading: CircleAvatar(
-          backgroundColor: isRequest ? Colors.orange[50] : Colors.green[50],
+          backgroundColor: isRequest ? Colors.orange[50] : Colors.blue[50],
           child: Icon(isRequest ? Icons.hourglass_top : Icons.verified, 
-                     color: isRequest ? Colors.orange : Colors.green),
+                     color: isRequest ? Colors.orange : Colors.blue),
         ),
         title: Text(worker.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text("${worker.skill} • ${worker.email}"),
