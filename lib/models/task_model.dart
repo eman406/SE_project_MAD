@@ -10,7 +10,9 @@ class TaskModel {
   final String assignedBy;
   final String status; // Pending, In Progress, Completed, Rejected
   final String workerId;
-  final String? installationId; // Link to installation request
+  final String? installationId; 
+  final String? orderId;
+  final String? quotationId;
 
   TaskModel({
     required this.id,
@@ -23,6 +25,8 @@ class TaskModel {
     required this.status,
     required this.workerId,
     this.installationId,
+    this.orderId,
+    this.quotationId,
   });
 
   Map<String, dynamic> toMap() {
@@ -36,22 +40,28 @@ class TaskModel {
       'status': status,
       'workerId': workerId,
       'installationId': installationId,
+      'orderId': orderId,
+      'quotationId': quotationId,
     };
   }
 
   factory TaskModel.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map;
+    final data = doc.data() as Map<String, dynamic>? ?? {};
     return TaskModel(
       id: doc.id,
-      title: data['title'] ?? '',
+      title: data['title'] ?? 'New Task',
       description: data['description'] ?? '',
-      location: data['location'] ?? '',
-      dateTime: data['dateTime'] != null ? (data['dateTime'] as Timestamp).toDate() : DateTime.now(),
+      location: data['location'] ?? 'Not Specified',
+      dateTime: data['dateTime'] != null 
+          ? (data['dateTime'] as Timestamp).toDate() 
+          : DateTime.now(),
       priority: data['priority'] ?? 'Medium',
       assignedBy: data['assignedBy'] ?? 'Admin',
       status: data['status'] ?? 'Pending',
       workerId: data['workerId'] ?? '',
       installationId: data['installationId'],
+      orderId: data['orderId'],
+      quotationId: data['quotationId'],
     );
   }
 }

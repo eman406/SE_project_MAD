@@ -69,13 +69,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                           leading: const CircleAvatar(child: Icon(Icons.person)),
                           title: Text(workers[index].name),
                           subtitle: Text(workers[index].skill),
-                          onTap: () {
-                            _firestore.collection('orders').doc(order.id).update({
-                              'workerId': workers[index].id,
-                              'status': 'Assigned'
-                            });
-                            Navigator.pop(context);
-                          },
+                          onTap: () => _assignWorker(order, workers[index]),
                         );
                       },
                     ),
@@ -87,6 +81,36 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
         );
       },
     );
+  }
+
+  void _assignWorker(OrderModel order, WorkerModel worker) async {
+    try {
+      // 1. Update Order
+      await _firestore.collection('orders').doc(order.id).update({
+        'workerId': worker.id,
+        'status': 'Assigned'
+      });
+
+      // 2. Create Task for Worker so it appears in Worker Panel
+      await _firestore.collection('tasks').add({
+        'title': 'Delivery: ${order.fullName}',
+        'description': 'Customer: ${order.fullName}. Items: ${order.items.length}. Amount: Rs. ${order.totalAmount}',
+        'location': '${order.address}, ${order.city}',
+        'dateTime': Timestamp.now(),
+        'priority': 'Medium',
+        'assignedBy': 'Admin',
+        'status': 'Pending',
+        'workerId': worker.id,
+        'orderId': order.id,
+      });
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Assigned to ${worker.name}"), backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    }
   }
 
   @override
