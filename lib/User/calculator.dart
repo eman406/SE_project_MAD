@@ -36,7 +36,8 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
   }
 
   double get _recommendedKW {
-    return (_totalWatts / 1000) * 1.2;
+    // Exact Load in KW without the 20% margin that causes jump to next KW
+    return (_totalWatts / 1000);
   }
 
   void _increment(String key) {
@@ -71,7 +72,10 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
     );
 
     try {
+      // If load is 1kW or less -> 1kW quotation. If more than 1kW -> 2kW quotation.
       int requiredKW = _recommendedKW.ceil();
+      if (requiredKW == 0) requiredKW = 1; // Safety check
+      
       String docId = "${requiredKW}KW";
 
       DocumentSnapshot doc = await FirebaseFirestore.instance
@@ -138,7 +142,7 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
                 const SizedBox(height: 8),
                 OutlinedButton(
                   onPressed: () => _handleQuotationResponse(data, 'Rejected'),
-                  style: OutlinedButton.styleFrom(
+                  style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 45),
                     side: const BorderSide(color: Colors.red),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -390,7 +394,7 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
                       style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      "Estimated size with safety margin",
+                      "Calculated load without safety margin",
                       style: TextStyle(color: Colors.white60, fontSize: 12),
                     ),
                   ],
