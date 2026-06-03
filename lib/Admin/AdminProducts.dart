@@ -84,6 +84,10 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F6),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/admin_dashboard'),
+        ),
         title: const Text("Product Management", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF1E3A5F),
         foregroundColor: Colors.white,
@@ -130,7 +134,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                         title: Text("${data['name']} (${data['spec']})", style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text("Price: Rs. ${data['price']} | Stock: ${data['units']}"),
                         trailing: Row(
-                          mainAxisSize: MainAxisSize.min, // 'mainAxisAlignment' ki jagah 'mainAxisSize' use karein
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
                                 icon: const Icon(Icons.edit, color: Colors.green),

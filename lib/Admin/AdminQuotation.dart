@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/worker_model.dart';
 
 class AdminQuotationScreen extends StatefulWidget {
   const AdminQuotationScreen({super.key});
@@ -12,81 +11,29 @@ class AdminQuotationScreen extends StatefulWidget {
 class _AdminQuotationScreenState extends State<AdminQuotationScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  void _updateStatus(String id, String status) async {
-    await _firestore.collection('quotations').doc(id).update({'status': status});
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Quotation $status"), backgroundColor: status == 'Approved' ? Colors.green : Colors.red));
-    }
-  }
-
-  void _showAssignWorkerDialog(DocumentSnapshot quotation) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return StreamBuilder<QuerySnapshot>(
-          stream: _firestore.collection('approved_workers').snapshots(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            var workers = snapshot.data!.docs.map((doc) => WorkerModel.fromFirestore(doc)).toList();
-
-            return Container(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text("Assign Worker to Quotation", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: workers.length,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          leading: const CircleAvatar(child: Icon(Icons.person)),
-                          title: Text(workers[index].name),
-                          subtitle: Text(workers[index].skill),
-                          onTap: () => _assignWorker(quotation, workers[index]),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _assignWorker(DocumentSnapshot quotation, WorkerModel worker) async {
+  // Logic to update or add price packages (the data used by the calculator)
+  void _updatePackage(String kw, String price, String panels, String inverter) async {
+    if (kw.isEmpty || price.isEmpty) return;
     try {
-      // 1. Update Quotation
-      await _firestore.collection('quotations').doc(quotation.id).update({
-        'workerId': worker.id,
-        'status': 'Worker Assigned'
+      await _firestore.collection('quotations').doc("${kw}KW").set({
+        'kw': kw,
+        'price': int.parse(price),
+        'panels': panels,
+        'inverter': inverter,
       });
-
-      // 2. Create Task for Worker
-      await _firestore.collection('tasks').add({
-        'title': 'Quotation/Installation: ${quotation['userName']}',
-        'description': 'System: ${quotation['systemSize']}. Contact: ${quotation['userPhone']}',
-        'location': 'Customer Location',
-        'dateTime': Timestamp.now(),
-        'priority': 'High',
-        'assignedBy': 'Admin',
-        'status': 'Pending',
-        'workerId': worker.id,
-        'quotationId': quotation.id,
-      });
-
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Assigned to ${worker.name}"), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Price Package Updated"), backgroundColor: Colors.green),
+        );
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+      debugPrint("Error updating package: $e");
     }
+  }
+
+  void _deletePackage(String id) async {
+    await _firestore.collection('quotations').doc(id).delete();
   }
 
   @override
@@ -94,77 +41,119 @@ class _AdminQuotationScreenState extends State<AdminQuotationScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text("Manage Quotations", style: TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/admin_dashboard'),
+        ),
+        title: const Text("Manage Quotation", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF1E3A5F),
         foregroundColor: Colors.white,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('quotations').orderBy('createdAt', descending: true).snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          var docs = snapshot.data!.docs;
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore.collection('quotations').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                var docs = snapshot.data?.docs ?? [];
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              var data = docs[index].data() as Map<String, dynamic>;
-              return _buildQuotationCard(docs[index], data);
-            },
-          );
-        },
-      ),
-    );
-  }
+                if (docs.isEmpty) {
+                  return const Center(child: Text("No Pricing Packages Defined."));
+                }
 
-  Widget _buildQuotationCard(DocumentSnapshot doc, Map<String, dynamic> data) {
-    String status = data['status'] ?? 'Pending';
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(data['userName'] ?? 'User', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                _statusBadge(status),
-              ],
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    var data = docs[index].data() as Map<String, dynamic>;
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Color(0xFF1E3A5F),
+                          child: Icon(Icons.calculate, color: Colors.white, size: 20),
+                        ),
+                        title: Text("${data['kw']} KW System", style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text("Price: Rs. ${data['price']}\nPanels: ${data['panels']}"),
+                        isThreeLine: true,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _showPackageDialog(data: data),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              onPressed: () => _deletePackage(docs[index].id),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-            const SizedBox(height: 10),
-            Text("System: ${data['systemSize']}", style: const TextStyle(color: Colors.grey)),
-            Text("Phone: ${data['userPhone']}", style: const TextStyle(color: Colors.grey)),
-            const Divider(),
-            if (status == 'Pending')
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(onPressed: () => _updateStatus(doc.id, 'Rejected'), child: const Text("Reject", style: TextStyle(color: Colors.red))),
-                  ElevatedButton(onPressed: () => _updateStatus(doc.id, 'Approved'), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text("Approve")),
-                ],
-              )
-            else if (status == 'Approved')
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(onPressed: () => _showAssignWorkerDialog(doc), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), child: const Text("Assign Worker")),
-              )
-          ],
-        ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showPackageDialog(),
+        backgroundColor: Colors.orange,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text("Add New Price", style: TextStyle(color: Colors.white)),
       ),
     );
   }
 
-  Widget _statusBadge(String status) {
-    Color color = Colors.orange;
-    if (status == 'Approved' || status == 'Worker Assigned') color = Colors.green;
-    if (status == 'Rejected') color = Colors.red;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-      child: Text(status, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+  void _showPackageDialog({Map<String, dynamic>? data}) {
+    final kwCtrl = TextEditingController(text: data?['kw']?.toString());
+    final priceCtrl = TextEditingController(text: data?['price']?.toString());
+    final panelCtrl = TextEditingController(text: data?['panels']);
+    final invCtrl = TextEditingController(text: data?['inverter']);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(data == null ? "Define New System Price" : "Edit System Price"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: kwCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "System Size (KW)", hintText: "e.g. 1"),
+              ),
+              TextField(
+                controller: priceCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "Total Price (Rs.)", hintText: "e.g. 150000"),
+              ),
+              TextField(
+                controller: panelCtrl,
+                decoration: const InputDecoration(labelText: "Panels Detail", hintText: "e.g. 540W x 2"),
+              ),
+              TextField(
+                controller: invCtrl,
+                decoration: const InputDecoration(labelText: "Inverter Detail", hintText: "e.g. 1.2KW Hybrid"),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () => _updatePackage(kwCtrl.text, priceCtrl.text, panelCtrl.text, invCtrl.text),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E3A5F)),
+            child: const Text("Save Package", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 }

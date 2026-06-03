@@ -21,6 +21,10 @@ class _CartPageState extends State<CartPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/user_home'),
+        ),
         title: const Text("My Cart", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

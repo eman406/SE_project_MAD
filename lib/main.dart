@@ -57,6 +57,7 @@ class SmartEngineeringApp extends StatelessWidget {
         '/user_profile': (context) => const UserProfilePage(),
         '/cart': (context) => const CartPage(),
         '/shop': (context) => const SolarShopPage(),
+        '/user_home': (context) => const CategoriesDashboard(),
         '/firebase_test': (context) => const FirebaseTestPage(),
       },
     );

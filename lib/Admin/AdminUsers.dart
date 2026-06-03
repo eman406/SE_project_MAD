@@ -88,6 +88,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F6),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/admin_dashboard'),
+        ),
         title: const Text(
           "USER MANAGEMENT",
           style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),

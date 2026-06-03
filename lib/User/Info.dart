@@ -25,12 +25,7 @@ class _SolarInfoPageState extends State<SolarInfoPage> {
     });
 
     if (i == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const CategoriesDashboard(),
-        ),
-      );
+      Navigator.pushReplacementNamed(context, '/user_home');
     }
 
     if (i == 1) {
@@ -38,29 +33,15 @@ class _SolarInfoPageState extends State<SolarInfoPage> {
     }
 
     if (i == 2) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const SolarCalculatorPage(),
-        ),
-      );
+      Navigator.pushReplacementNamed(context, '/calculator');
     }
 
     if (i == 3) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const SolarShopPage(),
-        ),
-      );
+      Navigator.pushReplacementNamed(context, '/shop');
     }
 
     if (i == 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Profile Page"),
-        ),
-      );
+      Navigator.pushReplacementNamed(context, '/user_profile');
     }
   }
 
@@ -68,16 +49,22 @@ class _SolarInfoPageState extends State<SolarInfoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgWhite,
-
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/user_home'),
+        ),
+        title: const Text("Solar Information", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: primaryBlue,
+        elevation: 0,
+      ),
       body: Scrollbar(
         thickness: 6,
         radius: const Radius.circular(10),
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            _header(),
-            const SizedBox(height: 20),
-
             _title("🌞 Introduction"),
             _card(
               "Solar energy is obtained from sunlight and converted into electricity using solar panels. It is renewable, clean, and reduces dependency on grid electricity.",
@@ -155,27 +142,6 @@ class _SolarInfoPageState extends State<SolarInfoPage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _header() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: const [
-        CircleAvatar(
-          backgroundColor: solarYellow,
-          child: Icon(Icons.solar_power, color: primaryBlue),
-        ),
-        Text(
-          "Solar Information",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: primaryBlue,
-          ),
-        ),
-        Icon(Icons.menu, color: softGrey),
-      ],
     );
   }
 

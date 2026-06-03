@@ -36,153 +36,88 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
   }
 
   double get _recommendedKW {
-    // Exact Load in KW without the 20% margin that causes jump to next KW
     return (_totalWatts / 1000);
   }
 
   void _increment(String key) {
-    setState(() {
-      _appliances[key]!['count']++;
-    });
+    setState(() => _appliances[key]!['count']++);
   }
 
   void _decrement(String key) {
     setState(() {
-      if (_appliances[key]!['count'] > 0) {
-        _appliances[key]!['count']--;
-      }
+      if (_appliances[key]!['count'] > 0) _appliances[key]!['count']--;
     });
   }
 
   Future<void> _fetchAndShowQuotation() async {
     if (_totalWatts == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please add at least one appliance to generate a quote."),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please add appliances.")));
       return;
     }
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
 
     try {
-      // If load is 1kW or less -> 1kW quotation. If more than 1kW -> 2kW quotation.
       int requiredKW = _recommendedKW.ceil();
-      if (requiredKW == 0) requiredKW = 1; // Safety check
-      
+      if (requiredKW == 0) requiredKW = 1;
       String docId = "${requiredKW}KW";
 
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection('quotations')
-          .doc(docId)
-          .get();
-
+      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('quotations').doc(docId).get();
       if (mounted) Navigator.pop(context);
 
       if (doc.exists) {
         var data = doc.data() as Map<String, dynamic>;
         if (mounted) _displayOfficialQuotation(data);
       } else {
-        if (mounted) {
-          _showErrorDialog("No official quotation found for $requiredKW KW in our database.");
-        }
+        if (mounted) _showErrorDialog("No official quotation found for $requiredKW KW.");
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      if (mounted) _showErrorDialog("Error fetching quotation: $e");
     }
   }
 
   void _displayOfficialQuotation(Map<String, dynamic> data) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-          title: Column(
-            children: [
-              const Icon(Icons.verified_user_rounded, color: Colors.green, size: 50),
-              const SizedBox(height: 12),
-              Text(
-                "Official ${data['kw']} KW Quotation",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: darkGray),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: [
-                _buildQuoteRow("Standard Price:", "Rs. ${data['price']}"),
-                _buildQuoteRow("Solar Panels:", data['panels'] ?? "Standard Set"),
-                _buildQuoteRow("Inverter:", data['inverter'] ?? "Standard Inverter"),
-                const Divider(height: 32),
-                const Text("ESTIMATED PRICE", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-                Text("Rs. ${data['price']}", textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: successGreen)),
-              ],
-            ),
-          ),
-          actions: [
-            Column(
-              children: [
-                ElevatedButton(
-                  onPressed: () => _handleQuotationResponse(data, 'Accepted'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: successGreen,
-                    minimumSize: const Size(double.infinity, 45),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text("ACCEPT QUOTATION", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: () => _handleQuotationResponse(data, 'Rejected'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 45),
-                    side: const BorderSide(color: Colors.red),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text("REJECT QUOTATION", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("CLOSE", style: TextStyle(color: Colors.grey)),
-                ),
-              ],
-            )
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text("Official ${data['kw']} KW Quotation", textAlign: TextAlign.center),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Price: Rs. ${data['price']}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: successGreen)),
+            const SizedBox(height: 10),
+            Text("Panels: ${data['panels']}"),
+            Text("Inverter: ${data['inverter']}"),
           ],
-        );
-      },
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => _handleQuotationResponse(data, 'Accepted'),
+            style: ElevatedButton.styleFrom(backgroundColor: successGreen),
+            child: const Text("ACCEPT"),
+          ),
+          OutlinedButton(
+            onPressed: () => _handleQuotationResponse(data, 'REJECT'),
+            child: const Text("REJECT", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _handleQuotationResponse(Map<String, dynamic> quoteData, String status) async {
-    Navigator.pop(context); // Close quotation dialog
-
+    Navigator.pop(context);
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      _showErrorDialog("You must be logged in to proceed.");
-      return;
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+    if (user == null) return;
 
     try {
-      // Get user details from Firestore
       DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      String userName = userDoc.exists ? (userDoc.data() as Map<String, dynamic>)['name'] ?? 'Unknown' : 'Unknown';
-      String userPhone = userDoc.exists ? (userDoc.data() as Map<String, dynamic>)['phone'] ?? 'N/A' : 'N/A';
+      String userName = userDoc.exists ? (userDoc.data() as Map)['name'] ?? 'User' : 'User';
+      String userPhone = userDoc.exists ? (userDoc.data() as Map)['phone'] ?? 'N/A' : 'N/A';
 
       if (status == 'Accepted') {
+        // Direct logic: Save to installations collection as requested
         await FirebaseFirestore.instance.collection('installations').add({
           'userId': user.uid,
           'userName': userName,
@@ -193,63 +128,24 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
           'requestDate': FieldValue.serverTimestamp(),
         });
         if (mounted) {
-          Navigator.pop(context); // Close loading
           _showSuccessDialog("Quotation Accepted! Your request has been sent to Admin for installation assignment.");
         }
       } else {
-        await FirebaseFirestore.instance.collection('installations').add({
-          'userId': user.uid,
-          'userName': userName,
-          'userPhone': userPhone,
-          'systemSize': "${quoteData['kw']} KW",
-          'amount': (quoteData['price'] ?? 0).toDouble(),
-          'status': 'Rejected',
-          'requestDate': FieldValue.serverTimestamp(),
-        });
         if (mounted) {
-          Navigator.pop(context); // Close loading
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Quotation Rejected.")));
         }
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
       _showErrorDialog("Error: $e");
     }
   }
 
-  void _showSuccessDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Success"),
-        content: Text(message),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
-      ),
-    );
+  void _showSuccessDialog(String msg) {
+    showDialog(context: context, builder: (_) => AlertDialog(title: const Text("Notice"), content: Text(msg), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))]));
   }
 
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Notice"),
-        content: Text(message),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
-      ),
-    );
-  }
-
-  Widget _buildQuoteRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: darkGray)),
-        ],
-      ),
-    );
+  void _showErrorDialog(String msg) {
+    showDialog(context: context, builder: (_) => AlertDialog(title: const Text("Error"), content: Text(msg), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))]));
   }
 
   @override
@@ -257,16 +153,13 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
     return Scaffold(
       backgroundColor: softWhite,
       appBar: AppBar(
-        title: const Text(
-          "System Calculator",
-          style: TextStyle(color: darkGray, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: darkGray),
-          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/user_home'),
         ),
+        title: const Text("System Calculator", style: TextStyle(color: darkGray, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        elevation: 0
       ),
       body: Column(
         children: [
@@ -277,62 +170,21 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
               itemBuilder: (context, index) {
                 String key = _appliances.keys.elementAt(index);
                 var data = _appliances[key]!;
-                return Container(
+                return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: borderGray),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: primaryBlue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(data['icon'], color: primaryBlue),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              key,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: darkGray,
-                              ),
-                            ),
-                            Text(
-                              "${data['watts']} Watts each",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          IconButton(onPressed: () => _decrement(key), icon: const Icon(Icons.remove_circle_outline, color: Colors.red)),
-                          Text("${data['count']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          IconButton(onPressed: () => _increment(key), icon: const Icon(Icons.add_circle_outline, color: Colors.green)),
-                        ],
-                      ),
-                    ],
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  child: ListTile(
+                    leading: Icon(data['icon'], color: primaryBlue),
+                    title: Text(key, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text("${data['watts']} Watts"),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(onPressed: () => _decrement(key), icon: const Icon(Icons.remove_circle_outline, color: Colors.red)),
+                        Text("${data['count']}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        IconButton(onPressed: () => _increment(key), icon: const Icon(Icons.add_circle_outline, color: Colors.green)),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -346,98 +198,17 @@ class _SolarCalculatorPageState extends State<SolarCalculatorPage> {
 
   Widget _buildSummaryCard() {
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: primaryBlue,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 15,
-            offset: const Offset(0, -5),
-          ),
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(color: primaryBlue, borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Total Load:", style: TextStyle(color: Colors.white70)), Text("${_totalWatts.toStringAsFixed(0)} W", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))]),
+          const SizedBox(height: 10),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Recommended:", style: TextStyle(color: Colors.white70)), Text("${_recommendedKW.toStringAsFixed(2)} kW", style: const TextStyle(color: solarYellow, fontSize: 20, fontWeight: FontWeight.bold))]),
+          const SizedBox(height: 20),
+          SizedBox(width: double.infinity, height: 50, child: ElevatedButton(onPressed: _fetchAndShowQuotation, style: ElevatedButton.styleFrom(backgroundColor: successGreen), child: const Text("GET DETAILED QUOTE", style: TextStyle(fontWeight: FontWeight.bold)))),
         ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Total Load:",
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-                Text(
-                  "${_totalWatts.toStringAsFixed(0)} W",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(color: Colors.white24),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Recommended System:",
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      "Calculated load without safety margin",
-                      style: TextStyle(color: Colors.white60, fontSize: 12),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: solarYellow,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    "${_recommendedKW.toStringAsFixed(2)} kW",
-                    style: const TextStyle(
-                      color: darkGray,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: _fetchAndShowQuotation,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: successGreen,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  "GET DETAILED QUOTE",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

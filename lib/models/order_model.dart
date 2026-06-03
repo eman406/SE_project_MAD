@@ -13,6 +13,9 @@ class OrderModel {
   final String status; // Pending, Processing, Assigned, Out For Delivery, Delivered, Cancelled
   final DateTime orderDate;
   final String? workerId;
+  final String? workerName;
+  final DateTime? assignmentDate;
+  final DateTime? completionDate;
 
   OrderModel({
     required this.id,
@@ -27,6 +30,9 @@ class OrderModel {
     required this.status,
     required this.orderDate,
     this.workerId,
+    this.workerName,
+    this.assignmentDate,
+    this.completionDate,
   });
 
   Map<String, dynamic> toMap() {
@@ -42,6 +48,9 @@ class OrderModel {
       'status': status,
       'orderDate': orderDate,
       'workerId': workerId,
+      'workerName': workerName,
+      'assignmentDate': assignmentDate,
+      'completionDate': completionDate,
     };
   }
 
@@ -62,6 +71,9 @@ class OrderModel {
           ? (data['orderDate'] as Timestamp).toDate() 
           : DateTime.now(),
       workerId: data['workerId'],
+      workerName: data['workerName'],
+      assignmentDate: (data['assignmentDate'] as Timestamp?)?.toDate(),
+      completionDate: (data['completionDate'] as Timestamp?)?.toDate(),
     );
   }
 }

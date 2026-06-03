@@ -93,6 +93,10 @@ class _AdminInstallationScreenState extends State<AdminInstallationScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/admin_dashboard'),
+        ),
         title: const Text("Installation Requests", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF1E3A5F),
         foregroundColor: Colors.white,

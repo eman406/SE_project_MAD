@@ -88,6 +88,10 @@ class _AdminWorkerScreenState extends State<AdminWorkerScreen> with SingleTicker
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F6),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/admin_dashboard'),
+        ),
         title: const Text("WORKER HUB", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1E3A5F),

@@ -110,6 +110,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/user_home'),
+        ),
         title: const Text("Checkout Details"),
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,

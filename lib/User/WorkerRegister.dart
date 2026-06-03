@@ -54,7 +54,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  Navigator.pop(context);
+                  Navigator.pushReplacementNamed(context, '/user_home');
                 },
                 child: const Text("OK"),
               )
@@ -74,6 +74,10 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/user_home'),
+        ),
         title: const Text("Register as Worker"),
         backgroundColor: const Color(0xFF1E3A5F),
         foregroundColor: Colors.white,

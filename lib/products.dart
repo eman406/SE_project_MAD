@@ -67,6 +67,10 @@ class _SolarShopPageState extends State<SolarShopPage> {
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/user_home'),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Text("SOLAR SHOP", style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold)),
