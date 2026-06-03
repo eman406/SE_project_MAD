@@ -11,6 +11,8 @@ class WorkerModel {
   final String status;
   final String cnic;
   final String profilePic;
+  final double rating;
+  final int totalReviews;
   final DateTime createdAt;
 
   WorkerModel({
@@ -24,6 +26,8 @@ class WorkerModel {
     required this.status,
     required this.cnic,
     required this.profilePic,
+    required this.rating,
+    required this.totalReviews,
     required this.createdAt,
   });
 
@@ -38,12 +42,14 @@ class WorkerModel {
       'status': status,
       'cnic': cnic,
       'profilePic': profilePic,
+      'rating': rating,
+      'totalReviews': totalReviews,
       'createdAt': createdAt,
     };
   }
 
   factory WorkerModel.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map;
+    Map data = doc.data() as Map? ?? {};
     return WorkerModel(
       id: doc.id,
       name: data['name'] ?? '',
@@ -55,6 +61,8 @@ class WorkerModel {
       status: data['status'] ?? 'pending',
       cnic: data['cnic'] ?? '',
       profilePic: data['profilePic'] ?? '',
+      rating: (data['rating'] ?? 0.0).toDouble(),
+      totalReviews: data['totalReviews'] ?? 0,
       createdAt: data['createdAt'] != null 
           ? (data['createdAt'] as Timestamp).toDate() 
           : DateTime.now(),

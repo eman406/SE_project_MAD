@@ -55,6 +55,17 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     });
   }
 
+  // Helper to handle back navigation within the worker panel
+  Future<bool> _onWillPop() async {
+    if (_selectedIndex != 0) {
+      setState(() {
+        _selectedIndex = 0;
+      });
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -86,47 +97,64 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     }
 
     final List<Widget> pages = [
-      HomeSection(worker: workerData!),
+      HomeSection(
+        worker: workerData!,
+        onNavigate: (index) => setState(() => _selectedIndex = index),
+      ),
       TasksSection(workerId: currentUser!.uid),
       ProfileSection(worker: workerData!, onUpdate: _fetchWorkerData),
     ];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F6),
-      appBar: AppBar(
-        title: Text(_selectedIndex == 0 ? "SMART ENGINEERING" : _selectedIndex == 1 ? "Assigned Tasks" : "Account Settings"),
-        backgroundColor: const Color(0xFF1E3A5F),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          if (_selectedIndex == 0) _buildNotificationBadge(),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                  (route) => false,
-                );
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F7F6),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              // If on a sub-tab, go to home tab. If already on home tab, go back to previous screen.
+              if (_selectedIndex != 0) {
+                setState(() => _selectedIndex = 0);
+              } else {
+                Navigator.of(context).pop();
               }
             },
           ),
-        ],
-      ),
-      body: pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: const Color(0xFF1E3A5F),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment_outlined), activeIcon: Icon(Icons.assignment), label: "Tasks"),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: "Profile"),
-        ],
+          title: Text(_selectedIndex == 0 ? "SMART ENGINEERING" : _selectedIndex == 1 ? "Assigned Tasks" : "Account Settings"),
+          backgroundColor: const Color(0xFF1E3A5F),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          actions: [
+            if (_selectedIndex == 0) _buildNotificationBadge(),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                if (mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                    (route) => false,
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+        body: pages[_selectedIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          selectedItemColor: const Color(0xFF1E3A5F),
+          unselectedItemColor: Colors.grey,
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: "Home"),
+            BottomNavigationBarItem(icon: Icon(Icons.assignment_outlined), activeIcon: Icon(Icons.assignment), label: "Tasks"),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: "Profile"),
+          ],
+        ),
       ),
     );
   }
@@ -165,7 +193,8 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
 
 class HomeSection extends StatelessWidget {
   final WorkerModel worker;
-  const HomeSection({super.key, required this.worker});
+  final Function(int) onNavigate;
+  const HomeSection({super.key, required this.worker, required this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
@@ -208,8 +237,13 @@ class HomeSection extends StatelessWidget {
               const SizedBox(height: 25),
               const Text("Quick Links", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
               const SizedBox(height: 15),
-              _buildActionCard(context, "Check Safety Protocols", Icons.security, Colors.blue),
-              _buildActionCard(context, "Service Guidelines", Icons.list_alt, Colors.purple),
+              _buildActionCard(
+                context, 
+                "My Assigned Tasks", 
+                Icons.assignment_rounded, 
+                Colors.blue,
+                () => onNavigate(1),
+              ),
             ],
           ),
         );
@@ -271,15 +305,53 @@ class HomeSection extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard(BuildContext context, String title, IconData icon, Color color) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: () {},
+  Widget _buildActionCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 28),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Text(
+                    title, 
+                    style: const TextStyle(
+                      fontSize: 16, 
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E3A5F),
+                    ),
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
